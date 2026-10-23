@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Správce Rodokmenu - Moderní Správa & Šablony</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Inter + Outfit) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        nordic: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            800: '#1e293b',
+                            900: '#0f172a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* SVG Graph Styling */
+        .tree-line {
+            fill: none;
+            stroke-width: 1.5px;
+            transition: stroke 0.3s ease, stroke-width 0.3s ease;
+        }
+        
+        .node-card {
+            cursor: pointer;
+            transition: transform 0.2s ease, filter 0.2s ease;
+        }
+        .node-card:hover {
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.08));
+        }
+
+        /* Theme-specific styles injected via JS dynamically */
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased h-screen flex flex-col overflow-hidden">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white border-b border-slate-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-20 shadow-sm shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="bg-slate-900 text-white p-2 rounded-xl shadow-sm">
+                <i class="fa-solid me-0.5 fa-diagram-project text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-display text-lg font-bold text-slate-900 leading-none">Rodokmen Studio</h1>
+                <span class="text-xs text-slate-500 font-medium">Minimalistická správa rodokmenu</span>
+            </div>
+        </div>
+
+        <!-- Controls toolbar -->
+        <div class="flex items-center flex-wrap gap-2">
+            <!-- GEDCOM Import -->
+            <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 border border-slate-200">
+                <i class="fa-solid fa-file-import text-slate-500"></i>
+                <span>Načíst GEDCOM</span>
+                <input type="file" id="gedcomFileInput" accept=".ged,.gedcom" class="hidden" onchange="handleFileUpload(event)">
+            </label>
+
+            <!-- GEDCOM Export -->
+            <button onclick="exportGedcom()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 border border-slate-200">
+                <i class="fa-solid fa-file-export text-slate-500"></i>
+                <span>Uložit GEDCOM</span>
+            </button>
+
+            <div class="h-4 w-[1px] bg-slate-200 mx-1 hidden sm:block"></div>
+
+            <!-- View Mode Selector -->
+            <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-medium">
+                <button onclick="setViewMode('ancestors')" id="btn-ancestors" class="px-2.5 py-1 rounded-md transition font-medium text-slate-600 hover:text-slate-900">
+                    Vývod (Předkové)
+                </button>
+                <button onclick="setViewMode('descendants')" id="btn-descendants" class="px-2.5 py-1 rounded-md transition font-medium text-slate-600 hover:text-slate-900">
+                    Rozrod (Potomci)
+                </button>
+                <button onclick="setViewMode('full')" id="btn-full" class="px-2.5 py-1 rounded-md transition font-medium text-slate-600 hover:text-slate-900">
+                    Celý rodokmen
+                </button>
+            </div>
+
+            <!-- Theme Selector -->
+            <div class="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 text-xs">
+                <i class="fa-solid fa-palette text-slate-400"></i>
+                <span class="text-slate-500 font-medium hidden md:inline">Šablona:</span>
+                <select id="themeSelect" onchange="setTheme(this.value)" class="bg-transparent font-semibold text-slate-700 focus:outline-none cursor-pointer">
+                    <option value="nordic">Čistý Nordic (Monochrom)</option>
+                    <option value="indigo">Modern Accent (Indigo/Teal)</option>
+                    <option value="compact">Kompaktní Mřížka (Minimal)</option>
+                </select>
+            </div>
+
+            <div class="h-4 w-[1px] bg-slate-200 mx-1 hidden sm:block"></div>
+
+            <!-- Export Graphic -->
+            <button onclick="exportImage('svg')" class="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-download"></i>
+                <span>Export SVG</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <!-- Left Sidebar: Persons List -->
+        <aside class="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 z-10 shadow-sm">
+            <!-- Sidebar Header & Search -->
+            <div class="p-3 border-b border-slate-100 flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Osoby v rodokmenu (<span id="personCount">0</span>)</span>
+                    <button onclick="addNewPersonPrompt()" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Nová osoba
+                    </button>
+                </div>
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
+                    <input type="text" id="searchInput" oninput="filterPersonList()" placeholder="Hledat podle jména..." 
+                           class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-slate-400 focus:bg-white transition">
+                </div>
+            </div>
+
+            <!-- Person List Container -->
+            <div id="personList" class="flex-1 overflow-y-auto divide-y divide-slate-100">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Root Person Indicator -->
+            <div class="p-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-600 flex items-center justify-between">
+                <span class="truncate">Kořen stromu: <strong id="rootPersonName" class="text-slate-900">Vyberte osobu</strong></span>
+                <i class="fa-solid fa-tree text-slate-400"></i>
+            </div>
+        </aside>
+
+        <!-- Canvas Area (Interactive SVG Tree) -->
+        <main class="flex-1 bg-slate-100/70 relative overflow-hidden flex flex-col">
+            <!-- Canvas Controls Overlay -->
+            <div class="absolute top-4 right-4 z-10 flex flex-col gap-1.5 bg-white p-1.5 rounded-xl shadow-md border border-slate-200">
+                <button onclick="zoomIn()" title="Přiblížit" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg text-slate-600 transition">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                </button>
+                <button onclick="zoomOut()" title="Oddálit" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg text-slate-600 transition">
+                    <i class="fa-solid fa-minus text-xs"></i>
+                </button>
+                <button onclick="resetZoom()" title="Vycentrovat" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg text-slate-600 transition">
+                    <i class="fa-solid fa-expand text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Hint overlay -->
+            <div class="absolute bottom-4 left-4 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm text-[11px] text-slate-500 flex items-center gap-2">
+                <i class="fa-solid fa-hand-pointer"></i>
+                <span>Táhnutím posouváte canvas, kolečkem myši přibližujete/oddalujete. Kliknutím upravíte osobu.</span>
+            </div>
+
+            <!-- SVG Container -->
+            <div id="canvasContainer" class="w-full h-full cursor-grab active:cursor-grabbing select-none overflow-hidden">
+                <svg id="treeSvg" class="w-full h-full">
+                    <g id="viewportGroup">
+                        <g id="linesGroup"></g>
+                        <g id="nodesGroup"></g>
+                    </g>
+                </svg>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Modal / Drawer -->
+    <div id="editModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs" id="modalInitials">
+                        JD
+                    </div>
+                    <div>
+                        <h2 class="font-display font-bold text-slate-900 leading-tight" id="modalTitle">Upravit osobu</h2>
+                        <span class="text-xs text-slate-400" id="modalSubTitle">ID: INDI001</span>
+                    </div>
+                </div>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form Content -->
+            <div class="p-5 overflow-y-auto space-y-4">
+                <input type="hidden" id="editPersonId">
+
+                <!-- Basic Info Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Jméno</label>
+                        <input type="text" id="editFirstName" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Příjmení</label>
+                        <input type="text" id="editLastName" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-400">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Rodné příjmení (u žen)</label>
+                        <input type="text" id="editMaidenName" placeholder="Volitelné" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Pohlaví</label>
+                        <select id="editGender" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-400">
+                            <option value="M">Muž</option>
+                            <option value="F">Žena</option>
+                            <option value="U">Nespecifikováno</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Datum narození</label>
+                        <input type="text" id="editBirthDate" placeholder="např. 12.05.1950 nebo 1950" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Datum úmrtí</label>
+                        <input type="text" id="editDeathDate" placeholder="např. 10.01.2020 nebo úmrt" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-400">
+                    </div>
+                </div>
+
+                <hr class="border-slate-100 my-2">
+
+                <!-- Relationships Section -->
+                <div>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Vazby a rodina</h3>
+                    
+                    <div class="space-y-2 text-xs">
+                        <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
+                            <span class="text-slate-600 font-medium">Rodiče:</span>
+                            <div id="editParentsList" class="font-semibold text-slate-800">Žádní</div>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
+                            <span class="text-slate-600 font-medium">Manžel / Manželka:</span>
+                            <div id="editSpouseList" class="font-semibold text-slate-800">Žádný</div>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
+                            <span class="text-slate-600 font-medium">Děti:</span>
+                            <div id="editChildrenList" class="font-semibold text-slate-800">Žádné</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Quick Relative Actions -->
+                <div class="pt-2">
+                    <span class="block text-[11px] font-semibold text-slate-400 mb-1.5">Rychlé přidání příbuzného:</span>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button type="button" onclick="addRelative('parent')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium border border-slate-200 transition">
+                            + Přidat rodiče
+                        </button>
+                        <button type="button" onclick="addRelative('spouse')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium border border-slate-200 transition">
+                            + Přidat partnera/ku
+                        </button>
+                        <button type="button" onclick="addRelative('child')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium border border-slate-200 transition">
+                            + Přidat dítě
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                <button onclick="deleteCurrentPerson()" class="text-xs text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded">
+                    <i class="fa-solid fa-trash me-1"></i> Smazat osobu
+                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeEditModal()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition">
+                        Zrušit
+                    </button>
+                    <button onclick="savePersonDetails()" class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition shadow-sm">
+                        Uložit změny
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        /**
+         * GEDCOM & Tree Application State
+         */
+        let persons = {};       // Map of INDI ID -> Person Object
+        let families = {};      // Map of FAM ID -> Family Object
+        let currentRootId = null;
+        let selectedPersonId = null;
+        let viewMode = 'ancestors'; // 'ancestors' | 'descendants' | 'full'
+        let activeTheme = 'nordic';  // 'nordic' | 'indigo' | 'compact'
+
+        // SVG Pan/Zoom state
+        let zoomLevel = 1;
+        let panX = 0;
+        let panY = 0;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+
+        /**
+         * Initial Sample Dataset (Český rodokmen)
+         */
+        const SAMPLE_GEDCOM = `0 HEAD
+1 SOUR Studio
+1 GEDC
+2 VERS 5.5
+0 @I1@ INDI
+1 NAME Václav /Novák/
+1 SEX M
+1 BIRT
+2 DATE 12.05.1945
+1 DEAT
+2 DATE 20.08.2018
+1 FAMS @F1@
+0 @I2@ INDI
+1 NAME Marie /Nováková/
+1 _MARNM Svobodová
+1 SEX F
+1 BIRT
+2 DATE 03.11.1948
+1 DEAT
+2 DATE 15.01.2021
+1 FAMS @F1@
+0 @I3@ INDI
+1 NAME Jan /Novák/
+1 SEX M
+1 BIRT
+2 DATE 14.02.1972
+1 FAMC @F1@
+1 FAMS @F2@
+0 @I4@ INDI
+1 NAME Eva /Nováková/
+1 _MARNM Dvořáková
+1 SEX F
+1 BIRT
+2 DATE 25.09.1975
+1 FAMS @F2@
+0 @I5@ INDI
+1 NAME Tomáš /Novák/
+1 SEX M
+1 BIRT
+2 DATE 05.06.2001
+1 FAMC @F2@
+0 @I6@ INDI
+1 NAME Lucie /Nováková/
+1 SEX F
+1 BIRT
+2 DATE 18.11.2005
+1 FAMC @F2@
+0 @F1@ FAM
+1 HUSB @I1@
+1 WIFE @I2@
+1 CHIL @I3@
+0 @F2@ FAM
+1 HUSB @I3@
+1 WIFE @I4@
+1 CHIL @I5@
+1 CHIL @I6@
+0 TRLR`;
+
+        // Load sample data on startup
+        window.addEventListener('DOMContentLoaded', () => {
+            parseGedcomData(SAMPLE_GEDCOM);
+            setupCanvasPanZoom();
+            updateViewModeUI();
+        });
+
+        /**
+         * GEDCOM Parser
+         */
+        function parseGedcomData(text) {
+            persons = {};
+            families = {};
+
+            const lines = text.split(/\r?\n/);
+            let currentEntity = null;
+            let currentEntityType = null; // 'INDI' or 'FAM'
+            let subContext = null; // 'BIRT', 'DEAT', 'NAME', etc.
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+
+                const match = line.match(/^(\d+)\s+(@[^@]+@)?\s*(\w+)?\s*(.*)$/);
+                if (!match) return;
+
+                const level = parseInt(match[1]);
+                const id = match[2];
+                const tag = match[3];
+                const value = match[4];
+
+                if (level === 0) {
+                    if (tag === 'INDI') {
+                        currentEntityType = 'INDI';
+                        currentEntity = {
+                            id: id,
+                            firstName: '',
+                            lastName: '',
+                            maidenName: '',
+                            gender: 'U',
+                            birthDate: '',
+                            deathDate: '',
+                            famc: null, // Family where child
+                            fams: []   // Families where spouse
+                        };
+                        persons[id] = currentEntity;
+                    } else if (tag === 'FAM') {
+                        currentEntityType = 'FAM';
+                        currentEntity = {
+                            id: id,
+                            husband: null,
+                            wife: null,
+                            children: []
+                        };
+                        families[id] = currentEntity;
+                    } else {
+                        currentEntityType = null;
+                        currentEntity = null;
+                    }
+                    subContext = null;
+                } else if (currentEntity) {
+                    if (currentEntityType === 'INDI') {
+                        if (level === 1) {
+                            subContext = tag;
+                            if (tag === 'NAME') {
+                                const nameParts = value.split('/');
+                                currentEntity.firstName = nameParts[0] ? nameParts[0].trim() : '';
+                                currentEntity.lastName = nameParts[1] ? nameParts[1].trim() : '';
+                            } else if (tag === '_MARNM' || tag === 'GIVN') {
+                                currentEntity.maidenName = value.trim();
+                            } else if (tag === 'SEX') {
+                                currentEntity.gender = value.trim().toUpperCase();
+                            } else if (tag === 'FAMC') {
+                                currentEntity.famc = value.trim();
+                            } else if (tag === 'FAMS') {
+                                currentEntity.fams.push(value.trim());
+                            }
+                        } else if (level === 2) {
+                            if (subContext === 'BIRT' && tag === 'DATE') {
+                                currentEntity.birthDate = value.trim();
+                            } else if (subContext === 'DEAT' && tag === 'DATE') {
+                                currentEntity.deathDate = value.trim();
+                            } else if (subContext === 'NAME' && (tag === '_MARNM' || tag === 'GIVN')) {
+                                currentEntity.maidenName = value.trim();
+                            }
+                        }
+                    } else if (currentEntityType === 'FAM') {
+                        if (level === 1) {
+                            if (tag === 'HUSB') currentEntity.husband = value.trim();
+                            else if (tag === 'WIFE') currentEntity.wife = value.trim();
+                            else if (tag === 'CHIL') currentEntity.children.push(value.trim());
+                        }
+                    }
+                }
+            });
+
+            // Set default root person if available
+            const personKeys = Object.keys(persons);
+            if (personKeys.length > 0) {
+                // Try finding I3 (Jan Novák in sample) or default to first
+                currentRootId = persons['@I3@'] ? '@I3@' : personKeys[0];
+            } else {
+                currentRootId = null;
+            }
+
+            refreshSidebarList();
+            renderTree();
+        }
+
+        /**
+         * Handle GEDCOM File Upload
+         */
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseGedcomData(e.target.result);
+            };
+            reader.readAsText(file);
+        }
+
+        /**
+         * Export Current State to GEDCOM File
+         */
+        function exportGedcom() {
+            let out = "0 HEAD\n1 SOUR Studio Rodokmen\n1 GEDC\n2 VERS 5.5\n";
+
+            // Individuals
+            Object.values(persons).forEach(p => {
+                out += `0 ${p.id} INDI\n`;
+                out += `1 NAME ${p.firstName} /${p.lastName}/\n`;
+                if (p.maidenName) out += `1 _MARNM ${p.maidenName}\n`;
+                if (p.gender) out += `1 SEX ${p.gender}\n`;
+                if (p.birthDate) {
+                    out += `1 BIRT\n2 DATE ${p.birthDate}\n`;
+                }
+                if (p.deathDate) {
+                    out += `1 DEAT\n2 DATE ${p.deathDate}\n`;
+                }
+                if (p.famc) out += `1 FAMC ${p.famc}\n`;
+                p.fams.forEach(f => {
+                    out += `1 FAMS ${f}\n`;
+                });
+            });
+
+            // Families
+            Object.values(families).forEach(f => {
+                out += `0 ${f.id} FAM\n`;
+                if (f.husband) out += `1 HUSB ${f.husband}\n`;
+                if (f.wife) out += `1 WIFE ${f.wife}\n`;
+                f.children.forEach(c => {
+                    out += `1 CHIL ${c}\n`;
+                });
+            });
+
+            out += "0 TRLR\n";
+
+            const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = "rodokmen_export.ged";
+            link.click();
+        }
+
+        /**
+         * UI Sidebar List Render
+         */
+        function refreshSidebarList(filter = '') {
+            const listEl = document.getElementById('personList');
+            document.getElementById('personCount').textContent = Object.keys(persons).length;
+            listEl.innerHTML = '';
+
+            const rootP = persons[currentRootId];
+            document.getElementById('rootPersonName').textContent = rootP ? `${rootP.firstName} ${rootP.lastName}` : 'Není';
+
+            const sorted = Object.values(persons).sort((a, b) => a.lastName.localeCompare(b.lastName));
+
+            sorted.forEach(p => {
+                const fullName = `${p.firstName} ${p.lastName}`.trim() || 'Bez jména';
+                if (filter && !fullName.toLowerCase().includes(filter.toLowerCase())) return;
+
+                const isRoot = p.id === currentRootId;
+                const item = document.createElement('div');
+                item.className = `p-3 flex items-center justify-between cursor-pointer transition hover:bg-slate-50 ${isRoot ? 'bg-slate-100/80 font-medium' : ''}`;
+                
+                const initials = (p.firstName[0] || '') + (p.lastName[0] || '');
+                const years = [p.birthDate, p.deathDate].filter(Boolean).join(' - ');
+
+                item.innerHTML = `
+                    <div class="flex items-center gap-2.5 overflow-hidden" onclick="openEditModal('${p.id}')">
+                        <div class="w-7 h-7 rounded-full ${p.gender === 'F' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'} flex items-center justify-center font-bold text-[10px] shrink-0">
+                            ${initials || '?'}
+                        </div>
+                        <div class="truncate">
+                            <div class="text-xs text-slate-800 truncate">
+                                ${fullName} ${p.maidenName ? `<span class="text-slate-400">(${p.maidenName})</span>` : ''}
+                            </div>
+                            <div class="text-[10px] text-slate-400 truncate">${years || 'Brez datumu'}</div>
+                        </div>
+                    </div>
+                    <button onclick="event.stopPropagation(); setRootPerson('${p.id}')" title="Zobrazit strom od této osoby" class="text-slate-300 hover:text-slate-700 px-1.5 py-1 rounded">
+                        <i class="fa-solid fa-sitemap text-xs"></i>
+                    </button>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+
+        function filterPersonList() {
+            const query = document.getElementById('searchInput').value;
+            refreshSidebarList(query);
+        }
+
+        function setRootPerson(id) {
+            currentRootId = id;
+            refreshSidebarList(document.getElementById('searchInput').value);
+            renderTree();
+        }
+
+        /**
+         * Tree Layout & Rendering Engine (SVG)
+         */
+        function renderTree() {
+            const linesGroup = document.getElementById('linesGroup');
+            const nodesGroup = document.getElementById('nodesGroup');
+            linesGroup.innerHTML = '';
+            nodesGroup.innerHTML = '';
+
+            if (!currentRootId || !persons[currentRootId]) return;
+
+            // Generate hierarchy tree nodes based on View Mode
+            let treeStructure = buildTreeHierarchy(currentRootId, viewMode);
+            
+            // Calculate coordinates (simple layout algorithm)
+            layoutTreeNodes(treeStructure, 0, 0);
+
+            // Render SVG elements
+            renderSvgNodesAndLines(treeStructure, nodesGroup, linesGroup);
+        }
+
+        /**
+         * Build hierarchy model
+         */
+        function buildTreeHierarchy(personId, mode) {
+            const person = persons[personId];
+            if (!person) return null;
+
+            let node = {
+                id: person.id,
+                person: person,
+                children: [],
+                x: 0,
+                y: 0
+            };
+
+            if (mode === 'ancestors' || mode === 'full') {
+                // Find parents via FAMC
+                if (person.famc && families[person.famc]) {
+                    const fam = families[person.famc];
+                    if (fam.husband && persons[fam.husband]) {
+                        node.children.push(buildTreeHierarchy(fam.husband, 'ancestors'));
+                    }
+                    if (fam.wife && persons[fam.wife]) {
+                        node.children.push(buildTreeHierarchy(fam.wife, 'ancestors'));
+                    }
+                }
+            } 
+            
+            if (mode === 'descendants' || (mode === 'full' && node.children.length === 0)) {
+                // Find children via FAMS
+                person.fams.forEach(famId => {
+                    const fam = families[famId];
+                    if (fam && fam.children) {
+                        fam.children.forEach(childId => {
+                            if (persons[childId]) {
+                                node.children.push(buildTreeHierarchy(childId, 'descendants'));
+                            }
+                        });
+                    }
+                });
+            }
+
+            return node;
+        }
+
+        /**
+         * Calculate X, Y layout positions for nodes
+         */
+        function layoutTreeNodes(node, depth = 0, offset = { currentX: 0 }) {
+            if (!node) return;
+
+            const CARD_WIDTH = 220;
+            const CARD_HEIGHT = 90;
+            const GAP_X = 40;
+            const GAP_Y = 80;
+
+            node.y = depth * (CARD_HEIGHT + GAP_Y);
+
+            if (node.children.length === 0) {
+                node.x = offset.currentX;
+                offset.currentX += CARD_WIDTH + GAP_X;
+            } else {
+                node.children.forEach(child => {
+                    layoutTreeNodes(child, depth + 1, offset);
+                });
+                
+                // Center parent over children
+                const firstChild = node.children[0];
+                const lastChild = node.children[node.children.length - 1];
+                node.x = (firstChild.x + lastChild.x) / 2;
+            }
+        }
+
+        /**
+         * Render Nodes and Connecting Lines into SVG
+         */
+        function renderSvgNodesAndLines(node, nodesGroup, linesGroup) {
+            if (!node) return;
+
+            const CARD_WIDTH = 200;
+            const CARD_HEIGHT = 85;
+
+            // Draw connecting lines to children
+            node.children.forEach(child => {
+                const parentX = node.x + CARD_WIDTH / 2;
+                const parentY = node.y + CARD_HEIGHT;
+                const childX = child.x + CARD_WIDTH / 2;
+                const childY = child.y;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const midY = (parentY + childY) / 2;
+                
+                // Smooth orthogonal Bezier line
+                const d = `M ${parentX} ${parentY} C ${parentX} ${midY}, ${childX} ${midY}, ${childX} ${childY}`;
+                path.setAttribute('d', d);
+                path.setAttribute('class', 'tree-line');
+                path.setAttribute('stroke', getThemeLineColor());
+                linesGroup.appendChild(path);
+
+                renderSvgNodesAndLines(child, nodesGroup, linesGroup);
+            });
+
+            // Draw Person Card Node
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+            g.setAttribute('class', 'node-card');
+            g.onclick = () => openEditModal(node.id);
+
+            const p = node.person;
+            const dates = [p.birthDate ? `* ${p.birthDate}` : '', p.deathDate ? `† ${p.deathDate}` : ''].filter(Boolean).join('   ');
+            const fullName = `${p.firstName} ${p.lastName}`;
+
+            // Styling variables based on active theme
+            let themeStyles = getThemeNodeStyles(p);
+
+            g.innerHTML = `
+                <!-- Card Outer Rect -->
+                <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" rx="12" ry="12" 
+                      fill="${themeStyles.bg}" stroke="${themeStyles.border}" stroke-width="${themeStyles.borderWidth}" />
+                
+                <!-- Accent Indicator Bar -->
+                <rect x="0" y="0" width="6" height="${CARD_HEIGHT}" rx="3" ry="3" fill="${themeStyles.accent}" />
+
+                <!-- Name Text -->
+                <text x="18" y="28" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="${themeStyles.textPrimary}">
+                    ${escapeXml(truncateText(fullName, 20))}
+                </text>
+
+                <!-- Maiden Name if applicable -->
+                ${p.maidenName ? `
+                <text x="18" y="44" font-family="Inter, sans-serif" font-size="11" font-weight="400" fill="${themeStyles.textSecondary}">
+                    rodná: ${escapeXml(p.maidenName)}
+                </text>` : ''}
+
+                <!-- Dates Pill/Text -->
+                <text x="18" y="${p.maidenName ? 66 : 54}" font-family="Inter, sans-serif" font-size="10" font-weight="500" fill="${themeStyles.textMuted}">
+                    ${escapeXml(dates || 'Datum neuvedeno')}
+                </text>
+            `;
+
+            nodesGroup.appendChild(g);
+        }
+
+        /**
+         * Theme Helper Styles
+         */
+        function getThemeNodeStyles(person) {
+            const isFemale = person.gender === 'F';
+            
+            if (activeTheme === 'indigo') {
+                return {
+                    bg: '#ffffff',
+                    border: '#e2e8f0',
+                    borderWidth: '1',
+                    accent: isFemale ? '#ec4899' : '#6366f1',
+                    textPrimary: '#0f172a',
+                    textSecondary: '#64748b',
+                    textMuted: '#94a3b8'
+                };
+            } else if (activeTheme === 'compact') {
+                return {
+                    bg: '#f8fafc',
+                    border: '#cbd5e1',
+                    borderWidth: '1.5',
+                    accent: '#334155',
+                    textPrimary: '#0f172a',
+                    textSecondary: '#475569',
+                    textMuted: '#64748b'
+                };
+            } else {
+                // Nordic Monochrome (Default)
+                return {
+                    bg: '#ffffff',
+                    border: '#e2e8f0',
+                    borderWidth: '1',
+                    accent: isFemale ? '#94a3b8' : '#1e293b',
+                    textPrimary: '#0f172a',
+                    textSecondary: '#64748b',
+                    textMuted: '#94a3b8'
+                };
+            }
+        }
+
+        function getThemeLineColor() {
+            if (activeTheme === 'indigo') return '#cbd5e1';
+            if (activeTheme === 'compact') return '#94a3b8';
+            return '#cbd5e1';
+        }
+
+        function setTheme(themeKey) {
+            activeTheme = themeKey;
+            renderTree();
+        }
+
+        function setViewMode(mode) {
+            viewMode = mode;
+            updateViewModeUI();
+            renderTree();
+        }
+
+        function updateViewModeUI() {
+            ['ancestors', 'descendants', 'full'].forEach(m => {
+                const btn = document.getElementById(`btn-${m}`);
+                if (m === viewMode) {
+                    btn.className = "px-2.5 py-1 rounded-md transition font-semibold bg-white text-slate-900 shadow-sm";
+                } else {
+                    btn.className = "px-2.5 py-1 rounded-md transition font-medium text-slate-600 hover:text-slate-900";
+                }
+            });
+        }
+
+        /**
+         * Canvas Interactive Pan & Zoom
+         */
+        function setupCanvasPanZoom() {
+            const container = document.getElementById('canvasContainer');
+            const viewport = document.getElementById('viewportGroup');
+
+            container.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.node-card')) return;
+                isDragging = true;
+                dragStartX = e.clientX - panX;
+                dragStartY = e.clientY - panY;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                panX = e.clientX - dragStartX;
+                panY = e.clientY - dragStartY;
+                updateTransform();
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            container.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                zoomLevel = Math.min(Math.max(0.3, zoomLevel * zoomFactor), 3);
+                updateTransform();
+            });
+        }
+
+        function updateTransform() {
+            const viewport = document.getElementById('viewportGroup');
+            viewport.setAttribute('transform', `translate(${panX}, ${panY}) scale(${zoomLevel})`);
+        }
+
+        function zoomIn() {
+            zoomLevel = Math.min(3, zoomLevel * 1.2);
+            updateTransform();
+        }
+
+        function zoomOut() {
+            zoomLevel = Math.max(0.3, zoomLevel / 1.2);
+            updateTransform();
+        }
+
+        function resetZoom() {
+            zoomLevel = 1;
+            panX = 80;
+            panY = 80;
+            updateTransform();
+        }
+
+        /**
+         * Edit Modal Logic
+         */
+        function openEditModal(personId) {
+            selectedPersonId = personId;
+            const p = persons[personId];
+            if (!p) return;
+
+            document.getElementById('editPersonId').value = p.id;
+            document.getElementById('editFirstName').value = p.firstName || '';
+            document.getElementById('editLastName').value = p.lastName || '';
+            document.getElementById('editMaidenName').value = p.maidenName || '';
+            document.getElementById('editGender').value = p.gender || 'U';
+            document.getElementById('editBirthDate').value = p.birthDate || '';
+            document.getElementById('editDeathDate').value = p.deathDate || '';
+
+            document.getElementById('modalTitle').textContent = `${p.firstName} ${p.lastName}`.trim() || 'Bez jména';
+            document.getElementById('modalSubTitle').textContent = `ID: ${p.id}`;
+            document.getElementById('modalInitials').textContent = (p.firstName[0] || '') + (p.lastName[0] || '');
+
+            // Relations summary
+            let parentsText = 'Žádní';
+            if (p.famc && families[p.famc]) {
+                const fam = families[p.famc];
+                const pNames = [];
+                if (fam.husband && persons[fam.husband]) pNames.push(`${persons[fam.husband].firstName} ${persons[fam.husband].lastName}`);
+                if (fam.wife && persons[fam.wife]) pNames.push(`${persons[fam.wife].firstName} ${persons[fam.wife].lastName}`);
+                if (pNames.length) parentsText = pNames.join(' & ');
+            }
+            document.getElementById('editParentsList').textContent = parentsText;
+
+            let spouseText = 'Žádný';
+            if (p.fams.length > 0) {
+                const spouseNames = [];
+                p.fams.forEach(fId => {
+                    const fam = families[fId];
+                    if (fam) {
+                        const sId = (fam.husband === p.id) ? fam.wife : fam.husband;
+                        if (sId && persons[sId]) spouseNames.push(`${persons[sId].firstName} ${persons[sId].lastName}`);
+                    }
+                });
+                if (spouseNames.length) spouseText = spouseNames.join(', ');
+            }
+            document.getElementById('editSpouseList').textContent = spouseText;
+
+            let childrenCount = 0;
+            p.fams.forEach(fId => {
+                if (families[fId]) childrenCount += families[fId].children.length;
+            });
+            document.getElementById('editChildrenList').textContent = childrenCount > 0 ? `${childrenCount} dětí` : 'Žádné';
+
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            selectedPersonId = null;
+        }
+
+        function savePersonDetails() {
+            if (!selectedPersonId || !persons[selectedPersonId]) return;
+
+            const p = persons[selectedPersonId];
+            p.firstName = document.getElementById('editFirstName').value.trim();
+            p.lastName = document.getElementById('editLastName').value.trim();
+            p.maidenName = document.getElementById('editMaidenName').value.trim();
+            p.gender = document.getElementById('editGender').value;
+            p.birthDate = document.getElementById('editBirthDate').value.trim();
+            p.deathDate = document.getElementById('editDeathDate').value.trim();
+
+            closeEditModal();
+            refreshSidebarList();
+            renderTree();
+        }
+
+        function addNewPersonPrompt() {
+            const newId = `@I${Object.keys(persons).length + 1}@`;
+            persons[newId] = {
+                id: newId,
+                firstName: 'Nová',
+                lastName: 'Osoba',
+                maidenName: '',
+                gender: 'M',
+                birthDate: '',
+                deathDate: '',
+                famc: null,
+                fams: []
+            };
+
+            refreshSidebarList();
+            openEditModal(newId);
+        }
+
+        function addRelative(type) {
+            if (!selectedPersonId) return;
+            const targetP = persons[selectedPersonId];
+            const newId = `@I${Object.keys(persons).length + 1}@`;
+            const newFamId = `@F${Object.keys(families).length + 1}@`;
+
+            let newPerson = {
+                id: newId,
+                firstName: 'Nové',
+                lastName: targetP.lastName,
+                maidenName: '',
+                gender: type === 'parent' || type === 'child' ? 'M' : (targetP.gender === 'M' ? 'F' : 'M'),
+                birthDate: '',
+                deathDate: '',
+                famc: null,
+                fams: []
+            };
+
+            persons[newId] = newPerson;
+
+            if (type === 'parent') {
+                let fam = targetP.famc ? families[targetP.famc] : null;
+                if (!fam) {
+                    fam = { id: newFamId, husband: null, wife: null, children: [targetP.id] };
+                    families[newFamId] = fam;
+                    targetP.famc = newFamId;
+                }
+                if (newPerson.gender === 'M' && !fam.husband) fam.husband = newId;
+                else if (!fam.wife) fam.wife = newId;
+            } else if (type === 'spouse') {
+                const fam = {
+                    id: newFamId,
+                    husband: targetP.gender === 'M' ? targetP.id : newId,
+                    wife: targetP.gender === 'M' ? newId : targetP.id,
+                    children: []
+                };
+                families[newFamId] = fam;
+                targetP.fams.push(newFamId);
+                newPerson.fams.push(newFamId);
+            } else if (type === 'child') {
+                let famId = targetP.fams[0];
+                if (!famId) {
+                    famId = newFamId;
+                    const fam = {
+                        id: famId,
+                        husband: targetP.gender === 'M' ? targetP.id : null,
+                        wife: targetP.gender === 'F' ? targetP.id : null,
+                        children: []
+                    };
+                    families[famId] = fam;
+                    targetP.fams.push(famId);
+                }
+                families[famId].children.push(newId);
+                newPerson.famc = famId;
+            }
+
+            savePersonDetails();
+            openEditModal(newId);
+        }
+
+        function deleteCurrentPerson() {
+            if (!selectedPersonId) return;
+            delete persons[selectedPersonId];
+            if (currentRootId === selectedPersonId) {
+                currentRootId = Object.keys(persons)[0] || null;
+            }
+            closeEditModal();
+            refreshSidebarList();
+            renderTree();
+        }
+
+        /**
+         * SVG Image Export
+         */
+        function exportImage() {
+            const svgEl = document.getElementById('treeSvg');
+            const serializer = new XMLSerializer();
+            let source = serializer.serializeToString(svgEl);
+
+            if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+                source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+            }
+
+            const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+            const downloadLink = document.createElement("a");
+            downloadLink.href = url;
+            downloadLink.download = "rodokmen_strom.svg";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+
+        // Helpers
+        function truncateText(str, n) {
+            return (str.length > n) ? str.substr(0, n - 1) + '…' : str;
+        }
+
+        function escapeXml(unsafe) {
+            return unsafe.replace(/[<>&'"]/g, function (c) {
+                switch (c) {
+                    case '<': return '&lt;';
+                    case '>': return '&gt;';
+                    case '&': return '&amp;';
+                    case '\'': return '&apos;';
+                    case '"': return '&quot;';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
