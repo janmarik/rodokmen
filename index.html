@@ -3,311 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rodokmen Studio - Správa & Moderní Šablony</title>
-    <!-- Tailwind CSS -->
+    <title>Rodokmen Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Outfit', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .canvas-container {
+            background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
         }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        .tree-line {
-            fill: none;
-            stroke-width: 2px;
-            transition: stroke 0.3s ease, stroke-width 0.3s ease;
-        }
-        
-        .node-card {
-            cursor: pointer;
-            transition: transform 0.15s ease, filter 0.15s ease;
-        }
-        .node-card:hover {
-            filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.08));
-        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden select-none">
 
-    <!-- Top Navigation Header -->
-    <header class="bg-white border-b border-slate-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-20 shadow-sm shrink-0">
+    <!-- Top Header -->
+    <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between z-10 shadow-sm">
         <div class="flex items-center space-x-3">
-            <div class="bg-slate-900 text-white p-2 rounded-xl shadow-sm">
-                <i class="fa-solid fa-diagram-project text-lg"></i>
+            <div class="p-2 bg-slate-900 text-white rounded-lg">
+                <i data-lucide="network" class="w-5 h-5"></i>
             </div>
             <div>
-                <h1 class="font-display text-lg font-bold text-slate-900 leading-none">Rodokmen Studio</h1>
-                <span class="text-xs text-slate-500 font-medium">Správa rodokmenů & tiskové šablony</span>
+                <h1 class="font-bold text-slate-900 text-lg leading-tight">Rodokmen Studio</h1>
+                <p class="text-xs text-slate-500">Minimalistická správa rodokmenu</p>
             </div>
         </div>
 
-        <!-- Toolbar -->
-        <div class="flex items-center flex-wrap gap-2">
-            <!-- GEDCOM Import -->
-            <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 border border-slate-200">
-                <i class="fa-solid fa-file-import text-slate-500"></i>
-                <span>Načíst GEDCOM</span>
-                <input type="file" id="gedcomFileInput" accept=".ged,.gedcom" class="hidden" onchange="handleFileUpload(event)">
-            </label>
-
-            <!-- GEDCOM Export -->
-            <button onclick="exportGedcom()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 border border-slate-200">
-                <i class="fa-solid fa-file-export text-slate-500"></i>
-                <span>Uložit GEDCOM</span>
+        <!-- Mode Selectors -->
+        <div class="flex items-center space-x-2 bg-slate-100 p-1 rounded-lg text-sm">
+            <button id="btn-view-ancestors" onclick="setViewMode('ancestors')" class="px-3 py-1.5 rounded-md font-medium transition-all bg-white shadow-sm text-slate-900">
+                Vývod (Předkové)
             </button>
+            <button id="btn-view-descendants" onclick="setViewMode('descendants')" class="px-3 py-1.5 rounded-md font-medium text-slate-600 hover:text-slate-900 transition-all">
+                Rozrod (Potomci)
+            </button>
+            <button id="btn-view-all" onclick="setViewMode('all')" class="px-3 py-1.5 rounded-md font-medium text-slate-600 hover:text-slate-900 transition-all">
+                Celý rodokmen
+            </button>
+        </div>
 
-            <div class="h-4 w-[1px] bg-slate-200 mx-1 hidden sm:block"></div>
-
-            <!-- View Mode Selector -->
-            <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-medium">
-                <button onclick="setViewMode('ancestors')" id="btn-ancestors" class="px-2.5 py-1 rounded-md transition font-medium text-slate-600 hover:text-slate-900">
-                    Vývod (Předkové)
-                </button>
-                <button onclick="setViewMode('descendants')" id="btn-descendants" class="px-2.5 py-1 rounded-md transition font-medium text-slate-600 hover:text-slate-900">
-                    Rozrod (Potomci)
-                </button>
-                <button onclick="setViewMode('full')" id="btn-full" class="px-2.5 py-1 rounded-md transition font-medium text-slate-600 hover:text-slate-900">
-                    Širší Rodina
-                </button>
-            </div>
-
-            <!-- Theme Selector -->
-            <div class="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 text-xs">
-                <i class="fa-solid fa-palette text-slate-400"></i>
-                <span class="text-slate-500 font-medium hidden md:inline">Šablona:</span>
-                <select id="themeSelect" onchange="setTheme(this.value)" class="bg-transparent font-semibold text-slate-700 focus:outline-none cursor-pointer">
-                    <option value="nordic">Nordic Monochrom</option>
-                    <option value="indigo">Slate / Indigo</option>
-                    <option value="compact">Kompaktní Mřížka</option>
+        <!-- Template & Actions -->
+        <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-lg text-sm">
+                <i data-lucide="palette" class="w-4 h-4 text-slate-500"></i>
+                <select id="template-select" onchange="changeTemplate(this.value)" class="bg-transparent font-medium text-slate-700 outline-none cursor-pointer">
+                    <option value="nordic">Čistý Nordic (Monochrom)</option>
+                    <option value="slate">Slate Accent (Břidlice)</option>
+                    <option value="minimal">Ultra Minimal (Mřížka)</option>
                 </select>
             </div>
 
-            <div class="h-4 w-[1px] bg-slate-200 mx-1 hidden sm:block"></div>
+            <label class="cursor-pointer bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium px-3 py-1.5 rounded-lg text-sm flex items-center space-x-2 transition-all shadow-sm">
+                <i data-lucide="upload" class="w-4 h-4"></i>
+                <span>Načíst GEDCOM</span>
+                <input type="file" id="gedcom-input" accept=".ged" onchange="handleFileUpload(event)" class="hidden">
+            </label>
 
-            <!-- Export SVG -->
-            <button onclick="exportSvgImage()" class="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 shadow-sm">
-                <i class="fa-solid fa-download"></i>
+            <button onclick="exportGedcom()" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium px-3 py-1.5 rounded-lg text-sm flex items-center space-x-2 transition-all shadow-sm">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span>Uložit GEDCOM</span>
+            </button>
+
+            <button onclick="exportSVG()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-3 py-1.5 rounded-lg text-sm flex items-center space-x-2 transition-all shadow-sm">
+                <i data-lucide="image" class="w-4 h-4"></i>
                 <span>Export SVG</span>
             </button>
         </div>
     </header>
 
-    <!-- Main Workspace -->
-    <div class="flex flex-1 overflow-hidden relative">
+    <!-- Main Content Area -->
+    <div class="flex-1 flex overflow-hidden relative">
         
         <!-- Left Sidebar: Persons List -->
-        <aside class="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 z-10 shadow-sm">
-            <div class="p-3 border-b border-slate-100 flex flex-col gap-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Seznam osob (<span id="personCount">0</span>)</span>
-                    <button onclick="addNewPersonPrompt()" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1">
-                        <i class="fa-solid fa-plus"></i> Nová osoba
-                    </button>
+        <aside class="w-80 bg-white border-r border-slate-200 flex flex-col z-10 shadow-sm">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="font-semibold text-slate-800 flex items-center space-x-2">
+                    <span>OSOBY V RODOKMENU</span>
+                    <span id="person-count" class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
                 </div>
+                <button onclick="createNewPerson()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded flex items-center space-x-1 transition-all">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Nová</span>
+                </button>
+            </div>
+
+            <div class="p-3 border-b border-slate-100">
                 <div class="relative">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
-                    <input type="text" id="searchInput" oninput="filterPersonList()" placeholder="Hledat v rodokmenu..." 
-                           class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-slate-400 focus:bg-white transition">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                    <input type="text" id="search-input" oninput="renderPersonList()" placeholder="Hledat podle jména..." class="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 transition-all">
                 </div>
             </div>
 
-            <!-- Person List Container -->
-            <div id="personList" class="flex-1 overflow-y-auto divide-y divide-slate-100">
-                <!-- Rendered dynamically -->
-            </div>
-
-            <!-- Active Focus Indicator -->
-            <div class="p-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-600 flex items-center justify-between">
-                <span class="truncate">Aktivní osoba: <strong id="rootPersonName" class="text-slate-900">Není vybrána</strong></span>
-                <i class="fa-solid fa-crosshairs text-slate-400" title="Centrum stromu"></i>
+            <div id="person-list" class="flex-1 overflow-y-auto divide-y divide-slate-100">
+                <!-- Person items populated dynamically -->
             </div>
         </aside>
 
-        <!-- Canvas Area -->
-        <main class="flex-1 bg-slate-100/70 relative overflow-hidden flex flex-col">
-            <!-- Navigation Controls -->
-            <div class="absolute top-4 right-4 z-10 flex flex-col gap-1.5 bg-white p-1.5 rounded-xl shadow-md border border-slate-200">
-                <button onclick="zoomIn()" title="Přiblížit" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg text-slate-600 transition">
-                    <i class="fa-solid fa-plus text-xs"></i>
+        <!-- Canvas / Tree Area -->
+        <main class="flex-1 relative overflow-hidden canvas-container bg-slate-50/50" id="canvas-wrapper">
+            
+            <svg id="tree-svg" class="w-full h-full absolute inset-0 cursor-grab active:cursor-grabbing">
+                <g id="viewport">
+                    <g id="lines-group"></g>
+                    <g id="nodes-group"></g>
+                </g>
+            </svg>
+
+            <!-- Navigation / Pan-Zoom Controls -->
+            <div class="absolute bottom-6 right-6 flex flex-col bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+                <button onclick="zoomIn()" class="p-2 hover:bg-slate-50 border-b border-slate-100 text-slate-600 hover:text-slate-900 transition-all" title="Přiblížit">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
                 </button>
-                <button onclick="zoomOut()" title="Oddálit" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg text-slate-600 transition">
-                    <i class="fa-solid fa-minus text-xs"></i>
+                <button onclick="zoomOut()" class="p-2 hover:bg-slate-50 border-b border-slate-100 text-slate-600 hover:text-slate-900 transition-all" title="Oddálit">
+                    <i data-lucide="minus" class="w-5 h-5"></i>
                 </button>
-                <button onclick="resetZoom()" title="Vycentrovat" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg text-slate-600 transition">
-                    <i class="fa-solid fa-expand text-xs"></i>
+                <button onclick="resetZoom()" class="p-2 hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-all" title="Vycentrovat">
+                    <i data-lucide="maximize-2" class="w-5 h-5"></i>
                 </button>
             </div>
 
-            <!-- Helper Instructions Banner -->
-            <div id="emptyStateState" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50/90 p-6 text-center">
-                <div class="w-16 h-16 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-2xl mb-4">
-                    <i class="fa-solid fa-folder-open"></i>
-                </div>
-                <h2 class="text-lg font-bold text-slate-800 mb-1">Žádný rodokmen není načten</h2>
-                <p class="text-xs text-slate-500 max-w-sm mb-6">Nahrajte soubor <strong>.ged</strong> (GEDCOM) ze svého počítače nebo vytvořte první osobu ručně.</p>
-                <div class="flex items-center gap-3">
-                    <label class="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold transition shadow-sm flex items-center gap-2">
-                        <i class="fa-solid fa-file-import"></i>
-                        <span>Nahrát GEDCOM</span>
-                        <input type="file" accept=".ged,.gedcom" class="hidden" onchange="handleFileUpload(event)">
-                    </label>
-                    <button onclick="addNewPersonPrompt()" class="bg-white hover:bg-slate-100 text-slate-800 px-4 py-2 rounded-xl text-xs font-semibold transition border border-slate-200 shadow-sm flex items-center gap-2">
-                        <i class="fa-solid fa-user-plus"></i>
-                        <span>Vytvořit osobu</span>
-                    </button>
+            <!-- Empty State Prompt -->
+            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <div class="bg-white/90 backdrop-blur border border-slate-200 p-8 rounded-2xl shadow-xl max-w-md text-center pointer-events-auto">
+                    <div class="w-12 h-12 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="folder-open" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-1">Žádný rodokmen k zobrazení</h3>
+                    <p class="text-sm text-slate-500 mb-6">Nahrajte soubor GEDCOM (.ged) nebo vytvořte první osobu pro zahájení stavby rodokmenu.</p>
+                    <div class="flex items-center justify-center space-x-3">
+                        <label class="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-2 rounded-lg text-sm flex items-center space-x-2 transition-all">
+                            <i data-lucide="upload" class="w-4 h-4"></i>
+                            <span>Načíst GEDCOM</span>
+                            <input type="file" accept=".ged" onchange="handleFileUpload(event)" class="hidden">
+                        </label>
+                        <button onclick="createNewPerson()" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium px-4 py-2 rounded-lg text-sm flex items-center space-x-2 transition-all">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span>Nová osoba</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- SVG Tree Canvas -->
-            <div id="canvasContainer" class="w-full h-full cursor-grab active:cursor-grabbing select-none overflow-hidden">
-                <svg id="treeSvg" class="w-full h-full">
-                    <g id="viewportGroup">
-                        <g id="linesGroup"></g>
-                        <g id="nodesGroup"></g>
-                    </g>
-                </svg>
-            </div>
         </main>
     </div>
 
     <!-- Edit Modal -->
-    <div id="editModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            <!-- Header -->
-            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs" id="modalInitials">
-                        --
-                    </div>
-                    <div>
-                        <h2 class="font-display font-bold text-slate-900 leading-tight" id="modalTitle">Upravit osobu</h2>
-                        <span class="text-xs text-slate-400" id="modalSubTitle">ID: -</span>
-                    </div>
-                </div>
-                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
-                    <i class="fa-solid fa-xmark text-lg"></i>
+    <div id="edit-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden transform transition-all">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-800 text-lg">Detail osoby</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200/50 transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
+            
+            <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                <input type="hidden" id="edit-id">
 
-            <!-- Form -->
-            <div class="p-5 overflow-y-auto space-y-4">
-                <input type="hidden" id="editPersonId">
-
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Jméno</label>
-                        <input type="text" id="editFirstName" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-400">
+                        <input type="text" id="edit-givenName" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 transition-all">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Příjmení</label>
-                        <input type="text" id="editLastName" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-400">
+                        <input type="text" id="edit-surname" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 transition-all">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Rodné příjmení (u žen)</label>
-                        <input type="text" id="editMaidenName" placeholder="Volitelné" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-400">
-                    </div>
+                <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Pohlaví</label>
-                        <select id="editGender" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-400">
+                        <select id="edit-sex" onchange="toggleMaidenNameField()" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 transition-all bg-white">
                             <option value="M">Muž</option>
                             <option value="F">Žena</option>
-                            <option value="U">Nespecifikováno</option>
                         </select>
+                    </div>
+                    <div id="maiden-name-container">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Rodné příjmení</label>
+                        <input type="text" id="edit-maidenName" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 transition-all">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Datum narození</label>
-                        <input type="text" id="editBirthDate" placeholder="např. 12.05.1950 nebo 1950" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-400">
+                        <input type="text" id="edit-birthDate" placeholder="např. 12 MAY 1920" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 transition-all">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Datum úmrtí</label>
-                        <input type="text" id="editDeathDate" placeholder="např. 10.01.2020 nebo úmrt" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-400">
+                        <input type="text" id="edit-deathDate" placeholder="např. 05 JAN 1998" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 transition-all">
                     </div>
                 </div>
 
-                <hr class="border-slate-100 my-2">
-
-                <!-- Relations Overview -->
-                <div>
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Vazby a rodina</h3>
-                    <div class="space-y-2 text-xs">
-                        <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
-                            <span class="text-slate-600 font-medium">Rodiče:</span>
-                            <div id="editParentsList" class="font-semibold text-slate-800">Žádní</div>
-                        </div>
-                        <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
-                            <span class="text-slate-600 font-medium">Partner / Partnerka:</span>
-                            <div id="editSpouseList" class="font-semibold text-slate-800">Žádný</div>
-                        </div>
-                        <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
-                            <span class="text-slate-600 font-medium">Děti:</span>
-                            <div id="editChildrenList" class="font-semibold text-slate-800">Žádné</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Add Relative Buttons -->
-                <div class="pt-1">
-                    <span class="block text-[11px] font-semibold text-slate-400 mb-1.5">Přidat nového příbuzného k této osobě:</span>
-                    <div class="flex flex-wrap gap-1.5">
-                        <button type="button" onclick="addRelative('parent')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 transition">
-                            + Přidat rodiče
+                <div class="pt-4 border-t border-slate-100">
+                    <label class="block text-xs font-semibold text-slate-600 mb-2">Vazby a rodina</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="addRelative('father')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg flex items-center space-x-1 transition-all">
+                            <i data-lucide="plus" class="w-3 h-3"></i>
+                            <span>Přidat otce</span>
                         </button>
-                        <button type="button" onclick="addRelative('spouse')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 transition">
-                            + Přidat partnera/ku
+                        <button onclick="addRelative('mother')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg flex items-center space-x-1 transition-all">
+                            <i data-lucide="plus" class="w-3 h-3"></i>
+                            <span>Přidat matku</span>
                         </button>
-                        <button type="button" onclick="addRelative('child')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 transition">
-                            + Přidat dítě
+                        <button onclick="addRelative('child')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg flex items-center space-x-1 transition-all">
+                            <i data-lucide="plus" class="w-3 h-3"></i>
+                            <span>Přidat dítě</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Footer -->
-            <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                <button onclick="deleteCurrentPerson()" class="text-xs text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded">
-                    <i class="fa-solid fa-trash me-1"></i> Smazat osobu
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                <button onclick="deleteCurrentPerson()" class="px-3 py-1.5 text-red-600 hover:bg-red-50 text-xs font-medium rounded-lg transition-all flex items-center space-x-1">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    <span>Smazat osobu</span>
                 </button>
-                <div class="flex items-center gap-2">
-                    <button onclick="closeEditModal()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition">
+                <div class="flex items-center space-x-2">
+                    <button onclick="closeModal()" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-medium rounded-lg transition-all">
                         Zrušit
                     </button>
-                    <button onclick="savePersonDetails()" class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition shadow-sm">
+                    <button onclick="savePersonModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-all">
                         Uložit změny
                     </button>
                 </div>
@@ -315,665 +236,753 @@
         </div>
     </div>
 
-    <!-- Application JavaScript Logic -->
+    <!-- Application Script -->
     <script>
-        /**
-         * State Storage
-         */
-        let persons = {};       // Map INDI ID -> Person object
-        let families = {};      // Map FAM ID -> Family object
+        // State
+        let persons = {};
+        let families = {};
         let activePersonId = null;
-        let selectedPersonId = null;
-        let viewMode = 'ancestors'; // 'ancestors' | 'descendants' | 'full'
-        let activeTheme = 'nordic';
+        let currentViewMode = 'ancestors'; // ancestors, descendants, all
+        let currentTemplate = 'nordic';
 
-        // Zoom/Pan State
-        let zoomLevel = 1;
-        let panX = 100;
-        let panY = 100;
+        // Pan Zoom variables
+        let scale = 1;
+        let panX = 0;
+        let panY = 0;
         let isDragging = false;
-        let dragStartX = 0;
-        let dragStartY = 0;
+        let startX = 0;
+        let startY = 0;
 
+        // Node Dimensions
+        const CARD_WIDTH = 220;
+        const CARD_HEIGHT = 90;
+        const GAP_X = 50;
+        const GAP_Y = 80;
+
+        // Initialize App
         window.addEventListener('DOMContentLoaded', () => {
-            setupCanvasPanZoom();
-            refreshStateUI();
+            lucide.createIcons();
+            setupPanZoom();
+            updateEmptyState();
         });
 
-        /**
-         * Robust GEDCOM 5.5 Parser
-         */
-        function parseGedcomData(text) {
-            persons = {};
-            families = {};
+        // Toggle Maiden Name Field
+        function toggleMaidenNameField() {
+            const sex = document.getElementById('edit-sex').value;
+            const container = document.getElementById('maiden-name-container');
+            if (sex === 'F') {
+                container.classList.remove('opacity-40', 'pointer-events-none');
+            } else {
+                container.classList.add('opacity-40', 'pointer-events-none');
+            }
+        }
 
+        // GEDCOM Parser
+        function parseGedcom(text) {
             const lines = text.split(/\r?\n/);
-            let currentEntity = null;
-            let currentEntityType = null;
-            let currentSubTag = null;
+            const newPersons = {};
+            const newFamilies = {};
 
-            lines.forEach(line => {
+            let currentRecord = null;
+            let currentType = null;
+
+            for (let line of lines) {
                 line = line.trim();
-                if (!line) return;
+                if (!line) continue;
 
-                // Match GEDCOM syntax: Level [ID] Tag [Value]
-                const match = line.match(/^(\d+)\s+(@[^@]+@)?\s*(\w+)?\s*(.*)$/);
-                if (!match) return;
+                const match = line.match(/^(\d+)\s+(@[^@]+@|[^\s]+)\s*(.*)$/);
+                if (!match) continue;
 
                 const level = parseInt(match[1]);
-                const id = match[2];
-                const tag = match[3];
-                const value = match[4] ? match[4].trim() : '';
+                const tagOrId = match[2];
+                const value = match[3];
 
                 if (level === 0) {
-                    if (tag === 'INDI') {
-                        currentEntityType = 'INDI';
-                        currentEntity = {
-                            id: id,
-                            firstName: '',
-                            lastName: '',
+                    if (value === 'INDI') {
+                        currentType = 'INDI';
+                        currentRecord = {
+                            id: tagOrId,
+                            givenName: '',
+                            surname: '',
                             maidenName: '',
-                            gender: 'U',
+                            sex: 'M',
                             birthDate: '',
                             deathDate: '',
                             famc: null,
                             fams: []
                         };
-                        persons[id] = currentEntity;
-                    } else if (tag === 'FAM') {
-                        currentEntityType = 'FAM';
-                        currentEntity = {
-                            id: id,
+                        newPersons[tagOrId] = currentRecord;
+                    } else if (value === 'FAM') {
+                        currentType = 'FAM';
+                        currentRecord = {
+                            id: tagOrId,
                             husband: null,
                             wife: null,
                             children: []
                         };
-                        families[id] = currentEntity;
+                        newFamilies[tagOrId] = currentRecord;
                     } else {
-                        currentEntityType = null;
-                        currentEntity = null;
+                        currentType = null;
+                        currentRecord = null;
                     }
-                    currentSubTag = null;
-                } else if (currentEntity) {
-                    if (currentEntityType === 'INDI') {
-                        if (level === 1) {
-                            currentSubTag = tag;
-                            if (tag === 'NAME') {
-                                const parts = value.split('/');
-                                currentEntity.firstName = parts[0] ? parts[0].trim() : '';
-                                currentEntity.lastName = parts[1] ? parts[1].trim() : '';
-                            } else if (tag === '_MARNM' || tag === '_MAIDEN') {
-                                currentEntity.maidenName = value;
-                            } else if (tag === 'SEX') {
-                                currentEntity.gender = value.toUpperCase();
-                            } else if (tag === 'FAMC') {
-                                currentEntity.famc = value;
-                            } else if (tag === 'FAMS') {
-                                if (!currentEntity.fams.includes(value)) {
-                                    currentEntity.fams.push(value);
-                                }
+                } else if (currentRecord && level === 1) {
+                    if (currentType === 'INDI') {
+                        if (tagOrId === 'NAME') {
+                            const nameMatch = value.match(/(.*?)\/(.*?)\//);
+                            if (nameMatch) {
+                                currentRecord.givenName = nameMatch[1].trim();
+                                currentRecord.surname = nameMatch[2].trim();
+                            } else {
+                                currentRecord.givenName = value.trim();
                             }
-                        } else if (level === 2) {
-                            if (currentSubTag === 'BIRT' && tag === 'DATE') {
-                                currentEntity.birthDate = value;
-                            } else if (currentSubTag === 'DEAT' && tag === 'DATE') {
-                                currentEntity.deathDate = value;
-                            } else if (currentSubTag === 'NAME' && (tag === '_MARNM' || tag === 'GIVN')) {
-                                currentEntity.maidenName = value;
-                            }
+                        } else if (tagOrId === 'SEX') {
+                            currentRecord.sex = value.trim().toUpperCase();
+                        } else if (tagOrId === 'FAMC') {
+                            currentRecord.famc = value.trim();
+                        } else if (tagOrId === 'FAMS') {
+                            currentRecord.fams.push(value.trim());
+                        } else if (tagOrId === '_MAIDEN' || tagOrId === '_MARNM') {
+                            currentRecord.maidenName = value.trim();
                         }
-                    } else if (currentEntityType === 'FAM') {
-                        if (level === 1) {
-                            if (tag === 'HUSB') currentEntity.husband = value;
-                            else if (tag === 'WIFE') currentEntity.wife = value;
-                            else if (tag === 'CHIL') {
-                                if (!currentEntity.children.includes(value)) {
-                                    currentEntity.children.push(value);
-                                }
-                            }
+                    } else if (currentType === 'FAM') {
+                        if (tagOrId === 'HUSB') currentRecord.husband = value.trim();
+                        if (tagOrId === 'WIFE') currentRecord.wife = value.trim();
+                        if (tagOrId === 'CHIL') currentRecord.children.push(value.trim());
+                    }
+                } else if (currentRecord && level === 2) {
+                    if (currentType === 'INDI') {
+                        if (tagOrId === 'DATE') {
+                            // Simple heuristic based on parent tag context if needed, 
+                            // here we check if birth/death were preceding tag
                         }
                     }
                 }
+            }
+
+            // Second pass for birth / death dates
+            let lastTag = '';
+            for (let line of lines) {
+                line = line.trim();
+                const match = line.match(/^(\d+)\s+([^\s]+)\s*(.*)$/);
+                if (!match) continue;
+                const level = parseInt(match[1]);
+                const tag = match[2];
+                const val = match[3];
+
+                if (level === 0) {
+                    currentRecord = newPersons[tag] || newFamilies[tag] || null;
+                } else if (level === 1) {
+                    lastTag = tag;
+                } else if (level === 2 && tag === 'DATE' && currentRecord && currentRecord.givenName !== undefined) {
+                    if (lastTag === 'BIRT') currentRecord.birthDate = val;
+                    if (lastTag === 'DEAT') currentRecord.deathDate = val;
+                }
+            }
+
+            // Extract Maiden name heuristic if female and missing
+            Object.values(newPersons).forEach(p => {
+                if (p.sex === 'F' && !p.maidenName && p.surname) {
+                    p.maidenName = p.surname;
+                }
             });
 
-            // Ensure bi-directional family linkage
-            Object.values(families).forEach(fam => {
-                if (fam.husband && persons[fam.husband]) {
-                    if (!persons[fam.husband].fams.includes(fam.id)) persons[fam.husband].fams.push(fam.id);
-                }
-                if (fam.wife && persons[fam.wife]) {
-                    if (!persons[fam.wife].fams.includes(fam.id)) persons[fam.wife].fams.push(fam.id);
-                }
-                fam.children.forEach(childId => {
-                    if (persons[childId]) {
-                        persons[childId].famc = fam.id;
-                    }
-                });
-            });
-
-            const keys = Object.keys(persons);
-            activePersonId = keys.length > 0 ? keys[0] : null;
-
-            refreshStateUI();
+            return { persons: newPersons, families: newFamilies };
         }
 
+        // GEDCOM Export
+        function exportGedcom() {
+            let ged = "0 HEAD\n1 SOUR RodokmenStudio\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n";
+
+            Object.values(persons).forEach(p => {
+                ged += `0 ${p.id} INDI\n`;
+                ged += `1 NAME ${p.givenName} /${p.surname}/\n`;
+                if (p.sex) ged += `1 SEX ${p.sex}\n`;
+                if (p.maidenName) ged += `1 _MAIDEN ${p.maidenName}\n`;
+                if (p.birthDate) ged += `1 BIRT\n2 DATE ${p.birthDate}\n`;
+                if (p.deathDate) ged += `1 DEAT\n2 DATE ${p.deathDate}\n`;
+                if (p.famc) ged += `1 FAMC ${p.famc}\n`;
+                (p.fams || []).forEach(f => { ged += `1 FAMS ${f}\n`; });
+            });
+
+            Object.values(families).forEach(f => {
+                ged += `0 ${f.id} FAM\n`;
+                if (f.husband) ged += `1 HUSB ${f.husband}\n`;
+                if (f.wife) ged += `1 WIFE ${f.wife}\n`;
+                (f.children || []).forEach(c => { ged += `1 CHIL ${c}\n`; });
+            });
+
+            ged += "0 TRLR\n";
+
+            const blob = new Blob([ged], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'rodokmen.ged';
+            link.click();
+        }
+
+        // File Upload Handler
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                parseGedcomData(e.target.result);
+                const content = e.target.result;
+                const parsed = parseGedcom(content);
+                persons = parsed.persons;
+                families = parsed.families;
+
+                const keys = Object.keys(persons);
+                if (keys.length > 0) {
+                    activePersonId = keys[0];
+                } else {
+                    activePersonId = null;
+                }
+
+                updateEmptyState();
+                renderPersonList();
+                renderTree();
+                resetZoom();
             };
             reader.readAsText(file);
         }
 
-        /**
-         * GEDCOM Exporter
-         */
-        function exportGedcom() {
-            if (Object.keys(persons).length === 0) {
-                alert('Rodokmen je prázdný, není co uložit.');
-                return;
-            }
+        // Render Person Sidebar List
+        function renderPersonList() {
+            const container = document.getElementById('person-list');
+            const search = document.getElementById('search-input').value.toLowerCase();
+            document.getElementById('person-count').innerText = Object.keys(persons).length;
 
-            let out = "0 HEAD\n1 SOUR Studio Rodokmen\n1 GEDC\n2 VERS 5.5\n";
+            container.innerHTML = '';
 
-            Object.values(persons).forEach(p => {
-                out += `0 ${p.id} INDI\n`;
-                out += `1 NAME ${p.firstName} /${p.lastName}/\n`;
-                if (p.maidenName) out += `1 _MARNM ${p.maidenName}\n`;
-                if (p.gender) out += `1 SEX ${p.gender}\n`;
-                if (p.birthDate) out += `1 BIRT\n2 DATE ${p.birthDate}\n`;
-                if (p.deathDate) out += `1 DEAT\n2 DATE ${p.deathDate}\n`;
-                if (p.famc) out += `1 FAMC ${p.famc}\n`;
-                p.fams.forEach(f => out += `1 FAMS ${f}\n`);
+            const sorted = Object.values(persons).sort((a,b) => {
+                const nameA = `${a.surname} ${a.givenName}`.toLowerCase();
+                const nameB = `${b.surname} ${b.givenName}`.toLowerCase();
+                return nameA.localeCompare(nameB);
             });
-
-            Object.values(families).forEach(f => {
-                out += `0 ${f.id} FAM\n`;
-                if (f.husband) out += `1 HUSB ${f.husband}\n`;
-                if (f.wife) out += `1 WIFE ${f.wife}\n`;
-                f.children.forEach(c => out += `1 CHIL ${c}\n`);
-            });
-
-            out += "0 TRLR\n";
-
-            const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = "rodokmen_export.ged";
-            link.click();
-        }
-
-        /**
-         * Refresh UI & Sidebar
-         */
-        function refreshStateUI() {
-            const total = Object.keys(persons).length;
-            document.getElementById('personCount').textContent = total;
-            document.getElementById('emptyStateState').style.display = total === 0 ? 'flex' : 'none';
-
-            const activeP = persons[activePersonId];
-            document.getElementById('rootPersonName').textContent = activeP ? `${activeP.firstName} ${activeP.lastName}` : 'Není vybrána';
-
-            refreshSidebarList();
-            renderTree();
-        }
-
-        function refreshSidebarList() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const listEl = document.getElementById('personList');
-            listEl.innerHTML = '';
-
-            const sorted = Object.values(persons).sort((a, b) => a.lastName.localeCompare(b.lastName));
 
             sorted.forEach(p => {
-                const fullName = `${p.firstName} ${p.lastName}`.trim() || 'Bez jména';
-                if (query && !fullName.toLowerCase().includes(query)) return;
+                const fullName = `${p.givenName} ${p.surname}`.toLowerCase();
+                if (search && !fullName.includes(search)) return;
 
                 const isActive = p.id === activePersonId;
-                const item = document.createElement('div');
-                item.className = `p-3 flex items-center justify-between cursor-pointer transition hover:bg-slate-50 ${isActive ? 'bg-slate-100 font-medium' : ''}`;
+                const div = document.createElement('div');
+                div.className = `p-3 flex items-center justify-between cursor-pointer transition-all ${
+                    isActive ? 'bg-slate-100 border-l-4 border-slate-900' : 'hover:bg-slate-50'
+                }`;
                 
-                const initials = (p.firstName[0] || '') + (p.lastName[0] || '');
-                const years = [p.birthDate, p.deathDate].filter(Boolean).join(' - ');
+                const dates = [p.birthDate, p.deathDate].filter(Boolean).join(' - ') || 'Bez datumu';
+                const maiden = (p.sex === 'F' && p.maidenName) ? ` (${p.maidenName})` : '';
 
-                item.innerHTML = `
-                    <div class="flex items-center gap-2.5 overflow-hidden flex-1" onclick="openEditModal('${p.id}')">
-                        <div class="w-7 h-7 rounded-full ${p.gender === 'F' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'} flex items-center justify-center font-bold text-[10px] shrink-0">
-                            ${initials || '?'}
+                div.innerHTML = `
+                    <div class="overflow-hidden pr-2" onclick="setActivePerson('${p.id}')">
+                        <div class="font-medium text-slate-800 text-sm truncate">
+                            ${p.givenName || 'Neznámé'} <span class="font-bold">${p.surname || ''}</span>
+                            <span class="text-xs text-slate-400 font-normal">${maiden}</span>
                         </div>
-                        <div class="truncate">
-                            <div class="text-xs text-slate-800 truncate">
-                                ${fullName} ${p.maidenName ? `<span class="text-slate-400">(${p.maidenName})</span>` : ''}
-                            </div>
-                            <div class="text-[10px] text-slate-400 truncate">${years || 'Datum neuvedeno'}</div>
-                        </div>
+                        <div class="text-xs text-slate-400 truncate">${dates}</div>
                     </div>
-                    <button onclick="event.stopPropagation(); setActivePerson('${p.id}')" title="Zobrazit strom od této osoby" class="text-slate-400 hover:text-slate-800 p-1.5 rounded">
-                        <i class="fa-solid fa-crosshairs text-xs"></i>
-                    </button>
+                    <div class="flex items-center space-x-1">
+                        <button onclick="openEditModal('${p.id}'); event.stopPropagation();" class="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-700">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
                 `;
-                listEl.appendChild(item);
-            });
-        }
 
-        function filterPersonList() {
-            refreshSidebarList();
+                container.appendChild(div);
+            });
+
+            lucide.createIcons();
         }
 
         function setActivePerson(id) {
             activePersonId = id;
-            refreshStateUI();
+            renderPersonList();
+            renderTree();
         }
 
-        /**
-         * Tree Hierarchy Renderer
-         */
+        function setViewMode(mode) {
+            currentViewMode = mode;
+            ['ancestors', 'descendants', 'all'].forEach(m => {
+                const btn = document.getElementById(`btn-view-${m}`);
+                if (m === mode) {
+                    btn.className = "px-3 py-1.5 rounded-md font-medium transition-all bg-white shadow-sm text-slate-900";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-md font-medium text-slate-600 hover:text-slate-900 transition-all";
+                }
+            });
+            renderTree();
+            resetZoom();
+        }
+
+        function changeTemplate(tpl) {
+            currentTemplate = tpl;
+            renderTree();
+        }
+
+        // Layout Engine & Tree Rendering
         function renderTree() {
-            const linesGroup = document.getElementById('linesGroup');
-            const nodesGroup = document.getElementById('nodesGroup');
+            const linesGroup = document.getElementById('lines-group');
+            const nodesGroup = document.getElementById('nodes-group');
             linesGroup.innerHTML = '';
             nodesGroup.innerHTML = '';
 
             if (!activePersonId || !persons[activePersonId]) return;
 
-            const visited = new Set();
-            const treeGraph = buildGraphHierarchy(activePersonId, viewMode, visited);
-            
-            let tracker = { currentX: 0 };
-            calculateTreePositions(treeGraph, 0, tracker);
+            let nodes = [];
+            let connections = [];
 
-            renderGraphToSvg(treeGraph, nodesGroup, linesGroup);
+            if (currentViewMode === 'ancestors') {
+                const layout = buildAncestorsLayout(activePersonId);
+                nodes = layout.nodes;
+                connections = layout.connections;
+            } else if (currentViewMode === 'descendants') {
+                const layout = buildDescendantsLayout(activePersonId);
+                nodes = layout.nodes;
+                connections = layout.connections;
+            } else {
+                const layout = buildAllTreeLayout();
+                nodes = layout.nodes;
+                connections = layout.connections;
+            }
+
+            // Draw Connections (Lines)
+            connections.forEach(conn => {
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                const midY = (conn.y1 + conn.y2) / 2;
+                const d = `M ${conn.x1} ${conn.y1} C ${conn.x1} ${midY}, ${conn.x2} ${midY}, ${conn.x2} ${conn.y2}`;
+                
+                path.setAttribute("d", d);
+                path.setAttribute("fill", "none");
+                path.setAttribute("stroke", currentTemplate === 'minimal' ? '#94a3b8' : '#cbd5e1');
+                path.setAttribute("stroke-width", "2");
+                linesGroup.appendChild(path);
+            });
+
+            // Draw Nodes (Cards)
+            nodes.forEach(node => {
+                const p = persons[node.id];
+                if (!p) return;
+
+                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                g.setAttribute("transform", `translate(${node.x}, ${node.y})`);
+                g.setAttribute("class", "cursor-pointer");
+                g.onclick = () => openEditModal(node.id);
+
+                // Styling based on template
+                let cardBg = "#ffffff";
+                let cardBorder = "#e2e8f0";
+                let textPrimary = "#0f172a";
+                let textSecondary = "#64748b";
+                let accentBar = null;
+
+                if (currentTemplate === 'slate') {
+                    cardBorder = "#cbd5e1";
+                    accentBar = p.sex === 'F' ? "#ec4899" : "#3b82f6";
+                } else if (currentTemplate === 'minimal') {
+                    cardBorder = "#94a3b8";
+                }
+
+                if (node.id === activePersonId) {
+                    cardBorder = "#0f172a";
+                }
+
+                // Card background rect
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("width", CARD_WIDTH);
+                rect.setAttribute("height", CARD_HEIGHT);
+                rect.setAttribute("rx", "10");
+                rect.setAttribute("fill", cardBg);
+                rect.setAttribute("stroke", cardBorder);
+                rect.setAttribute("stroke-width", node.id === activePersonId ? "2.5" : "1.5");
+                rect.setAttribute("class", "shadow-sm hover:shadow-md transition-all");
+                g.appendChild(rect);
+
+                // Accent Bar for Slate template
+                if (accentBar) {
+                    const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    bar.setAttribute("width", "4");
+                    bar.setAttribute("height", CARD_HEIGHT - 12);
+                    bar.setAttribute("x", "6");
+                    bar.setAttribute("y", "6");
+                    bar.setAttribute("rx", "2");
+                    bar.setAttribute("fill", accentBar);
+                    g.appendChild(bar);
+                }
+
+                // Name Text
+                const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                nameText.setAttribute("x", accentBar ? "20" : "16");
+                nameText.setAttribute("y", "28");
+                nameText.setAttribute("font-size", "14");
+                nameText.setAttribute("font-weight", "700");
+                nameText.setAttribute("fill", textPrimary);
+                nameText.textContent = `${p.givenName || ''} ${p.surname || ''}`;
+                g.appendChild(nameText);
+
+                // Maiden Name (if female)
+                let currentY = 46;
+                if (p.sex === 'F' && p.maidenName) {
+                    const maidenText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    maidenText.setAttribute("x", accentBar ? "20" : "16");
+                    maidenText.setAttribute("y", currentY);
+                    maidenText.setAttribute("font-size", "11");
+                    maidenText.setAttribute("fill", textSecondary);
+                    maidenText.textContent = `rodná: ${p.maidenName}`;
+                    g.appendChild(maidenText);
+                    currentY += 18;
+                }
+
+                // Dates
+                const dates = [p.birthDate ? `* ${p.birthDate}` : '', p.deathDate ? `+ ${p.deathDate}` : ''].filter(Boolean).join(' ');
+                if (dates) {
+                    const dateText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    dateText.setAttribute("x", accentBar ? "20" : "16");
+                    dateText.setAttribute("y", currentY + 4);
+                    dateText.setAttribute("font-size", "11");
+                    dateText.setAttribute("fill", textSecondary);
+                    dateText.textContent = dates;
+                    g.appendChild(dateText);
+                }
+
+                nodesGroup.appendChild(g);
+            });
         }
 
-        function buildGraphHierarchy(personId, mode, visited) {
-            if (!personId || !persons[personId] || visited.has(personId)) return null;
-            visited.add(personId);
+        // Layout: Ancestors (Vývod)
+        function buildAncestorsLayout(rootId) {
+            const nodes = [];
+            const connections = [];
 
-            const person = persons[personId];
-            let node = {
-                id: person.id,
-                person: person,
-                children: [],
-                x: 0,
-                y: 0
-            };
+            function traverse(id, level, xOffset) {
+                if (!id || !persons[id]) return null;
+                const p = persons[id];
 
-            if (mode === 'ancestors' || mode === 'full') {
-                if (person.famc && families[person.famc]) {
-                    const fam = families[person.famc];
+                const y = -level * (CARD_HEIGHT + GAP_Y);
+                const node = { id, x: xOffset, y };
+                nodes.push(node);
+
+                if (p.famc && families[p.famc]) {
+                    const fam = families[p.famc];
+                    const width = Math.max(1, Math.pow(2, 3 - level)) * (CARD_WIDTH + GAP_X) / 2;
+
+                    let fatherNode = null;
+                    let motherNode = null;
+
                     if (fam.husband) {
-                        const hNode = buildGraphHierarchy(fam.husband, 'ancestors', new Set(visited));
-                        if (hNode) node.children.push(hNode);
+                        fatherNode = traverse(fam.husband, level + 1, xOffset - width / 2);
                     }
                     if (fam.wife) {
-                        const wNode = buildGraphHierarchy(fam.wife, 'ancestors', new Set(visited));
-                        if (wNode) node.children.push(wNode);
+                        motherNode = traverse(fam.wife, level + 1, xOffset + width / 2);
                     }
-                }
-            }
 
-            if (mode === 'descendants' || (mode === 'full' && node.children.length === 0)) {
-                person.fams.forEach(famId => {
-                    const fam = families[famId];
-                    if (fam && fam.children) {
-                        fam.children.forEach(childId => {
-                            const cNode = buildGraphHierarchy(childId, 'descendants', new Set(visited));
-                            if (cNode) node.children.push(cNode);
+                    if (fatherNode) {
+                        connections.push({
+                            x1: node.x + CARD_WIDTH / 2, y1: node.y,
+                            x2: fatherNode.x + CARD_WIDTH / 2, y2: fatherNode.y + CARD_HEIGHT
                         });
                     }
+                    if (motherNode) {
+                        connections.push({
+                            x1: node.x + CARD_WIDTH / 2, y1: node.y,
+                            x2: motherNode.x + CARD_WIDTH / 2, y2: motherNode.y + CARD_HEIGHT
+                        });
+                    }
+                }
+
+                return node;
+            }
+
+            traverse(rootId, 0, 0);
+            return { nodes, connections };
+        }
+
+        // Layout: Descendants (Rozrod)
+        function buildDescendantsLayout(rootId) {
+            const nodes = [];
+            const connections = [];
+
+            function traverse(id, level, startX) {
+                if (!id || !persons[id]) return { node: null, width: 0 };
+                const p = persons[id];
+
+                const fams = p.fams || [];
+                let children = [];
+                fams.forEach(fId => {
+                    if (families[fId] && families[fId].children) {
+                        children = children.concat(families[fId].children);
+                    }
+                });
+
+                if (children.length === 0) {
+                    const y = level * (CARD_HEIGHT + GAP_Y);
+                    const node = { id, x: startX, y };
+                    nodes.push(node);
+                    return { node, width: CARD_WIDTH + GAP_X };
+                }
+
+                let currentX = startX;
+                const childNodes = [];
+
+                children.forEach(cId => {
+                    const res = traverse(cId, level + 1, currentX);
+                    if (res.node) childNodes.push(res.node);
+                    currentX += Math.max(res.width, CARD_WIDTH + GAP_X);
+                });
+
+                const totalWidth = currentX - startX;
+                const nodeX = startX + (totalWidth / 2) - (CARD_WIDTH / 2);
+                const node = { id, x: nodeX, y: level * (CARD_HEIGHT + GAP_Y) };
+                nodes.push(node);
+
+                childNodes.forEach(cNode => {
+                    connections.push({
+                        x1: node.x + CARD_WIDTH / 2, y1: node.y + CARD_HEIGHT,
+                        x2: cNode.x + CARD_WIDTH / 2, y2: cNode.y
+                    });
+                });
+
+                return { node, width: totalWidth };
+            }
+
+            traverse(rootId, 0, 0);
+            return { nodes, connections };
+        }
+
+        // Layout: All Tree (Celý rodokmen)
+        function buildAllTreeLayout() {
+            const nodes = [];
+            const connections = [];
+            const levels = {};
+
+            // Calculate level/generation for all persons
+            Object.keys(persons).forEach(id => { levels[id] = 0; });
+
+            let changed = true;
+            let iter = 0;
+            while (changed && iter < 10) {
+                changed = false;
+                iter++;
+                Object.values(families).forEach(fam => {
+                    const hLevel = fam.husband ? levels[fam.husband] : null;
+                    const wLevel = fam.wife ? levels[fam.wife] : null;
+                    const parentLevel = Math.max(hLevel || 0, wLevel || 0);
+
+                    (fam.children || []).forEach(cId => {
+                        if (levels[cId] !== parentLevel + 1) {
+                            levels[cId] = parentLevel + 1;
+                            changed = true;
+                        }
+                    });
                 });
             }
 
-            return node;
-        }
+            // Group by level
+            const levelGroups = {};
+            Object.keys(persons).forEach(id => {
+                const lvl = levels[id];
+                if (!levelGroups[lvl]) levelGroups[lvl] = [];
+                levelGroups[lvl].push(id);
+            });
 
-        function calculateTreePositions(node, depth, tracker) {
-            if (!node) return;
+            // Position nodes in rows
+            Object.keys(levelGroups).forEach(lvlStr => {
+                const lvl = parseInt(lvlStr);
+                const pIds = levelGroups[lvl];
+                const totalRowWidth = pIds.length * (CARD_WIDTH + GAP_X);
+                let startX = -totalRowWidth / 2;
 
-            const CARD_WIDTH = 220;
-            const CARD_HEIGHT = 80;
-            const GAP_X = 35;
-            const GAP_Y = 70;
-
-            node.y = depth * (CARD_HEIGHT + GAP_Y);
-
-            if (node.children.length === 0) {
-                node.x = tracker.currentX;
-                tracker.currentX += CARD_WIDTH + GAP_X;
-            } else {
-                node.children.forEach(child => {
-                    calculateTreePositions(child, depth + 1, tracker);
+                pIds.forEach(id => {
+                    nodes.push({
+                        id,
+                        x: startX,
+                        y: lvl * (CARD_HEIGHT + GAP_Y)
+                    });
+                    startX += CARD_WIDTH + GAP_X;
                 });
-                const first = node.children[0];
-                const last = node.children[node.children.length - 1];
-                node.x = (first.x + last.x) / 2;
-            }
-        }
-
-        function renderGraphToSvg(node, nodesGroup, linesGroup) {
-            if (!node) return;
-
-            const CARD_WIDTH = 200;
-            const CARD_HEIGHT = 75;
-
-            node.children.forEach(child => {
-                const startX = node.x + CARD_WIDTH / 2;
-                const startY = node.y + CARD_HEIGHT;
-                const endX = child.x + CARD_WIDTH / 2;
-                const endY = child.y;
-
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                const midY = (startY + endY) / 2;
-                const d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
-                
-                path.setAttribute('d', d);
-                path.setAttribute('class', 'tree-line');
-                path.setAttribute('stroke', '#cbd5e1');
-                linesGroup.appendChild(path);
-
-                renderGraphToSvg(child, nodesGroup, linesGroup);
             });
 
-            // Card Node Rendering
-            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            g.setAttribute('transform', `translate(${node.x}, ${node.y})`);
-            g.setAttribute('class', 'node-card');
-            g.onclick = () => openEditModal(node.id);
+            // Map connections
+            const nodeMap = {};
+            nodes.forEach(n => { nodeMap[n.id] = n; });
 
-            const p = node.person;
-            const fullName = `${p.firstName} ${p.lastName}`.trim() || 'Bez jména';
-            const dates = [p.birthDate ? `* ${p.birthDate}` : '', p.deathDate ? `† ${p.deathDate}` : ''].filter(Boolean).join('  ');
+            Object.values(families).forEach(fam => {
+                const parents = [fam.husband, fam.wife].filter(Boolean);
+                (fam.children || []).forEach(cId => {
+                    const cNode = nodeMap[cId];
+                    if (!cNode) return;
 
-            const styles = getThemeStyles(p);
-
-            g.innerHTML = `
-                <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" rx="10" ry="10" 
-                      fill="${styles.bg}" stroke="${styles.border}" stroke-width="${styles.borderWidth}" />
-                <rect x="0" y="0" width="5" height="${CARD_HEIGHT}" rx="2" ry="2" fill="${styles.accent}" />
-                
-                <text x="16" y="26" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="${styles.textPrimary}">
-                    ${escapeXml(truncateText(fullName, 22))}
-                </text>
-                
-                ${p.maidenName ? `
-                <text x="16" y="42" font-family="Inter, sans-serif" font-size="10" font-weight="400" fill="${styles.textSecondary}">
-                    rodná: ${escapeXml(p.maidenName)}
-                </text>` : ''}
-                
-                <text x="16" y="${p.maidenName ? 58 : 48}" font-family="Inter, sans-serif" font-size="10" font-weight="500" fill="${styles.textMuted}">
-                    ${escapeXml(dates || 'Datum neuvedeno')}
-                </text>
-            `;
-
-            nodesGroup.appendChild(g);
-        }
-
-        function getThemeStyles(person) {
-            const isFemale = person.gender === 'F';
-            if (activeTheme === 'indigo') {
-                return {
-                    bg: '#ffffff',
-                    border: '#cbd5e1',
-                    borderWidth: '1',
-                    accent: isFemale ? '#ec4899' : '#6366f1',
-                    textPrimary: '#0f172a',
-                    textSecondary: '#64748b',
-                    textMuted: '#94a3b8'
-                };
-            } else if (activeTheme === 'compact') {
-                return {
-                    bg: '#f8fafc',
-                    border: '#94a3b8',
-                    borderWidth: '1.5',
-                    accent: '#334155',
-                    textPrimary: '#0f172a',
-                    textSecondary: '#475569',
-                    textMuted: '#64748b'
-                };
-            } else {
-                // Nordic
-                return {
-                    bg: '#ffffff',
-                    border: '#e2e8f0',
-                    borderWidth: '1',
-                    accent: isFemale ? '#94a3b8' : '#0f172a',
-                    textPrimary: '#0f172a',
-                    textSecondary: '#64748b',
-                    textMuted: '#94a3b8'
-                };
-            }
-        }
-
-        function setTheme(t) {
-            activeTheme = t;
-            renderTree();
-        }
-
-        function setViewMode(m) {
-            viewMode = m;
-            ['ancestors', 'descendants', 'full'].forEach(mode => {
-                const btn = document.getElementById(`btn-${mode}`);
-                btn.className = mode === viewMode 
-                    ? "px-2.5 py-1 rounded-md transition font-semibold bg-white text-slate-900 shadow-sm"
-                    : "px-2.5 py-1 rounded-md transition font-medium text-slate-600 hover:text-slate-900";
+                    parents.forEach(pId => {
+                        const pNode = nodeMap[pId];
+                        if (pNode) {
+                            connections.push({
+                                x1: pNode.x + CARD_WIDTH / 2, y1: pNode.y + CARD_HEIGHT,
+                                x2: cNode.x + CARD_WIDTH / 2, y2: cNode.y
+                            });
+                        }
+                    });
+                });
             });
-            renderTree();
+
+            return { nodes, connections };
         }
 
-        /**
-         * Canvas Interactive Pan & Zoom
-         */
-        function setupCanvasPanZoom() {
-            const container = document.getElementById('canvasContainer');
+        // Pan Zoom Logic
+        function setupPanZoom() {
+            const svg = document.getElementById('tree-svg');
 
-            container.addEventListener('mousedown', (e) => {
-                if (e.target.closest('.node-card')) return;
-                isDragging = true;
-                dragStartX = e.clientX - panX;
-                dragStartY = e.clientY - panY;
+            svg.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'svg' || e.target.id === 'lines-group') {
+                    isDragging = true;
+                    startX = e.clientX - panX;
+                    startY = e.clientY - panY;
+                }
             });
 
             window.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                panX = e.clientX - dragStartX;
-                panY = e.clientY - dragStartY;
-                updateTransform();
+                if (isDragging) {
+                    panX = e.clientX - startX;
+                    panY = e.clientY - startY;
+                    updateViewportTransform();
+                }
             });
 
-            window.addEventListener('mouseup', () => {
-                isDragging = false;
-            });
+            window.addEventListener('mouseup', () => { isDragging = false; });
 
-            container.addEventListener('wheel', (e) => {
+            svg.addEventListener('wheel', (e) => {
                 e.preventDefault();
-                const factor = e.deltaY < 0 ? 1.1 : 0.9;
-                zoomLevel = Math.min(Math.max(0.2, zoomLevel * factor), 3);
-                updateTransform();
+                const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                scale = Math.min(Math.max(0.2, scale * zoomFactor), 3);
+                updateViewportTransform();
             });
         }
 
-        function updateTransform() {
-            const viewport = document.getElementById('viewportGroup');
-            viewport.setAttribute('transform', `translate(${panX}, ${panY}) scale(${zoomLevel})`);
+        function updateViewportTransform() {
+            const viewport = document.getElementById('viewport');
+            viewport.setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
         }
 
-        function zoomIn() { zoomLevel = Math.min(3, zoomLevel * 1.2); updateTransform(); }
-        function zoomOut() { zoomLevel = Math.max(0.2, zoomLevel / 1.2); updateTransform(); }
-        function resetZoom() { zoomLevel = 1; panX = 100; panY = 100; updateTransform(); }
+        function zoomIn() { scale = Math.min(3, scale * 1.2); updateViewportTransform(); }
+        function zoomOut() { scale = Math.max(0.2, scale / 1.2); updateViewportTransform(); }
+        function resetZoom() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            panX = wrapper.clientWidth / 2 - CARD_WIDTH / 2;
+            panY = wrapper.clientHeight / 2 - CARD_HEIGHT / 2;
+            scale = 1;
+            updateViewportTransform();
+        }
 
-        /**
-         * Person Editor Modal
-         */
-        function openEditModal(personId) {
-            selectedPersonId = personId;
-            const p = persons[personId];
+        // Modal Controls
+        function openEditModal(id) {
+            const p = persons[id];
             if (!p) return;
 
-            document.getElementById('editPersonId').value = p.id;
-            document.getElementById('editFirstName').value = p.firstName || '';
-            document.getElementById('editLastName').value = p.lastName || '';
-            document.getElementById('editMaidenName').value = p.maidenName || '';
-            document.getElementById('editGender').value = p.gender || 'U';
-            document.getElementById('editBirthDate').value = p.birthDate || '';
-            document.getElementById('editDeathDate').value = p.deathDate || '';
+            document.getElementById('edit-id').value = p.id;
+            document.getElementById('edit-givenName').value = p.givenName || '';
+            document.getElementById('edit-surname').value = p.surname || '';
+            document.getElementById('edit-sex').value = p.sex || 'M';
+            document.getElementById('edit-maidenName').value = p.maidenName || '';
+            document.getElementById('edit-birthDate').value = p.birthDate || '';
+            document.getElementById('edit-deathDate').value = p.deathDate || '';
 
-            document.getElementById('modalTitle').textContent = `${p.firstName} ${p.lastName}`.trim() || 'Bez jména';
-            document.getElementById('modalSubTitle').textContent = `ID: ${p.id}`;
-            document.getElementById('modalInitials').textContent = (p.firstName[0] || '') + (p.lastName[0] || '');
-
-            // Relations Summary
-            let parentsText = 'Žádní';
-            if (p.famc && families[p.famc]) {
-                const fam = families[p.famc];
-                const list = [];
-                if (fam.husband && persons[fam.husband]) list.push(`${persons[fam.husband].firstName} ${persons[fam.husband].lastName}`);
-                if (fam.wife && persons[fam.wife]) list.push(`${persons[fam.wife].firstName} ${persons[fam.wife].lastName}`);
-                if (list.length) parentsText = list.join(' & ');
-            }
-            document.getElementById('editParentsList').textContent = parentsText;
-
-            let spouseText = 'Žádný';
-            if (p.fams.length) {
-                const list = [];
-                p.fams.forEach(fId => {
-                    const fam = families[fId];
-                    if (fam) {
-                        const sId = (fam.husband === p.id) ? fam.wife : fam.husband;
-                        if (sId && persons[sId]) list.push(`${persons[sId].firstName} ${persons[sId].lastName}`);
-                    }
-                });
-                if (list.length) spouseText = list.join(', ');
-            }
-            document.getElementById('editSpouseList').textContent = spouseText;
-
-            let childCount = 0;
-            p.fams.forEach(fId => {
-                if (families[fId]) childCount += families[fId].children.length;
-            });
-            document.getElementById('editChildrenList').textContent = childCount ? `${childCount} dětí` : 'Žádné';
-
-            document.getElementById('editModal').classList.remove('hidden');
+            toggleMaidenNameField();
+            document.getElementById('edit-modal').classList.remove('hidden');
         }
 
-        function closeEditModal() {
-            document.getElementById('editModal').classList.add('hidden');
-            selectedPersonId = null;
+        function closeModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
         }
 
-        function savePersonDetails() {
-            if (!selectedPersonId || !persons[selectedPersonId]) return;
+        function savePersonModal() {
+            const id = document.getElementById('edit-id').value;
+            if (!persons[id]) return;
 
-            const p = persons[selectedPersonId];
-            p.firstName = document.getElementById('editFirstName').value.trim();
-            p.lastName = document.getElementById('editLastName').value.trim();
-            p.maidenName = document.getElementById('editMaidenName').value.trim();
-            p.gender = document.getElementById('editGender').value;
-            p.birthDate = document.getElementById('editBirthDate').value.trim();
-            p.deathDate = document.getElementById('editDeathDate').value.trim();
+            persons[id].givenName = document.getElementById('edit-givenName').value;
+            persons[id].surname = document.getElementById('edit-surname').value;
+            persons[id].sex = document.getElementById('edit-sex').value;
+            persons[id].maidenName = document.getElementById('edit-maidenName').value;
+            persons[id].birthDate = document.getElementById('edit-birthDate').value;
+            persons[id].deathDate = document.getElementById('edit-deathDate').value;
 
-            closeEditModal();
-            refreshStateUI();
+            closeModal();
+            renderPersonList();
+            renderTree();
         }
 
-        function addNewPersonPrompt() {
-            const newId = `@I${Object.keys(persons).length + 1}@`;
+        function createNewPerson() {
+            const newId = `@I${Date.now()}@`;
             persons[newId] = {
                 id: newId,
-                firstName: 'Nová',
-                lastName: 'Osoba',
+                givenName: 'Nová',
+                surname: 'Osoba',
+                sex: 'M',
                 maidenName: '',
-                gender: 'M',
                 birthDate: '',
                 deathDate: '',
                 famc: null,
                 fams: []
             };
 
-            if (!activePersonId) activePersonId = newId;
-            refreshStateUI();
-            openEditModal(newId);
-        }
-
-        function addRelative(type) {
-            if (!selectedPersonId) return;
-            const targetP = persons[selectedPersonId];
-            const newId = `@I${Object.keys(persons).length + 1}@`;
-            const newFamId = `@F${Object.keys(families).length + 1}@`;
-
-            const newPerson = {
-                id: newId,
-                firstName: 'Nové',
-                lastName: targetP.lastName,
-                maidenName: '',
-                gender: type === 'spouse' ? (targetP.gender === 'M' ? 'F' : 'M') : 'M',
-                birthDate: '',
-                deathDate: '',
-                famc: null,
-                fams: []
-            };
-
-            persons[newId] = newPerson;
-
-            if (type === 'parent') {
-                let fam = targetP.famc ? families[targetP.famc] : null;
-                if (!fam) {
-                    fam = { id: newFamId, husband: null, wife: null, children: [targetP.id] };
-                    families[newFamId] = fam;
-                    targetP.famc = newFamId;
-                }
-                if (newPerson.gender === 'M' && !fam.husband) fam.husband = newId;
-                else if (!fam.wife) fam.wife = newId;
-            } else if (type === 'spouse') {
-                const fam = {
-                    id: newFamId,
-                    husband: targetP.gender === 'M' ? targetP.id : newId,
-                    wife: targetP.gender === 'M' ? newId : targetP.id,
-                    children: []
-                };
-                families[newFamId] = fam;
-                targetP.fams.push(newFamId);
-                newPerson.fams.push(newFamId);
-            } else if (type === 'child') {
-                let famId = targetP.fams[0];
-                if (!famId) {
-                    famId = newFamId;
-                    const fam = {
-                        id: famId,
-                        husband: targetP.gender === 'M' ? targetP.id : null,
-                        wife: targetP.gender === 'F' ? targetP.id : null,
-                        children: []
-                    };
-                    families[famId] = fam;
-                    targetP.fams.push(famId);
-                }
-                families[famId].children.push(newId);
-                newPerson.famc = famId;
-            }
-
-            savePersonDetails();
+            activePersonId = newId;
+            updateEmptyState();
+            renderPersonList();
             openEditModal(newId);
         }
 
         function deleteCurrentPerson() {
-            if (!selectedPersonId) return;
-            delete persons[selectedPersonId];
-            
-            if (activePersonId === selectedPersonId) {
-                activePersonId = Object.keys(persons)[0] || null;
+            const id = document.getElementById('edit-id').value;
+            if (confirm('Opravdu chcete tuto osobu smazat?')) {
+                delete persons[id];
+                closeModal();
+                const keys = Object.keys(persons);
+                activePersonId = keys.length > 0 ? keys[0] : null;
+                updateEmptyState();
+                renderPersonList();
+                renderTree();
             }
-
-            closeEditModal();
-            refreshStateUI();
         }
 
-        /**
-         * SVG Vector Export
-         */
-        function exportSvgImage() {
-            const svg = document.getElementById('treeSvg');
+        function addRelative(type) {
+            const currentId = document.getElementById('edit-id').value;
+            const newId = `@I${Date.now()}@`;
+
+            persons[newId] = {
+                id: newId,
+                givenName: type === 'father' ? 'Otec' : type === 'mother' ? 'Matka' : 'Dítě',
+                surname: persons[currentId].surname || '',
+                sex: type === 'mother' ? 'F' : 'M',
+                maidenName: '',
+                birthDate: '',
+                deathDate: '',
+                famc: null,
+                fams: []
+            };
+
+            // Link in families
+            let famId = persons[currentId].famc;
+            if (!famId && (type === 'father' || type === 'mother')) {
+                famId = `@F${Date.now()}@`;
+                families[famId] = { id: famId, husband: null, wife: null, children: [currentId] };
+                persons[currentId].famc = famId;
+            }
+
+            if (type === 'father' && famId) families[famId].husband = newId;
+            if (type === 'mother' && famId) families[famId].wife = newId;
+
+            closeModal();
+            renderPersonList();
+            renderTree();
+            openEditModal(newId);
+        }
+
+        function updateEmptyState() {
+            const isEmpty = Object.keys(persons).length === 0;
+            document.getElementById('empty-state').style.display = isEmpty ? 'flex' : 'none';
+        }
+
+        // SVG Export
+        function exportSVG() {
+            const svg = document.getElementById('tree-svg');
             const serializer = new XMLSerializer();
             let source = serializer.serializeToString(svg);
 
@@ -982,29 +991,12 @@
             }
 
             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "rodokmen_strom.svg";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        // Helpers
-        function truncateText(str, n) {
-            return (str.length > n) ? str.substr(0, n - 1) + '…' : str;
-        }
-
-        function escapeXml(unsafe) {
-            return unsafe.replace(/[<>&'"]/g, c => {
-                switch (c) {
-                    case '<': return '&lt;';
-                    case '>': return '&gt;';
-                    case '&': return '&amp;';
-                    case '\'': return '&apos;';
-                    case '"': return '&quot;';
-                }
-            });
+            const downloadLink = document.createElement("a");
+            downloadLink.href = url;
+            downloadLink.download = "rodokmen.svg";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
         }
     </script>
 </body>
