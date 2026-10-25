@@ -3,23 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rodokmen Studio</title>
+    <title>Rodokmen Studio - Čistý Layout</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         .canvas-container {
-            background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
-            background-size: 20px 20px;
+            background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+            background-size: 24px 24px;
         }
-        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden select-none">
+<body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden select-none">
 
     <!-- Top Header -->
     <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between z-10 shadow-sm">
@@ -29,7 +28,7 @@
             </div>
             <div>
                 <h1 class="font-bold text-slate-900 text-lg leading-tight">Rodokmen Studio</h1>
-                <p class="text-xs text-slate-500">Minimalistická správa rodokmenu</p>
+                <p class="text-xs text-slate-500">Přehledný & minimalistický layout</p>
             </div>
         </div>
 
@@ -46,14 +45,14 @@
             </button>
         </div>
 
-        <!-- Template & Actions -->
+        <!-- Actions -->
         <div class="flex items-center space-x-3">
             <div class="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-lg text-sm">
                 <i data-lucide="palette" class="w-4 h-4 text-slate-500"></i>
                 <select id="template-select" onchange="changeTemplate(this.value)" class="bg-transparent font-medium text-slate-700 outline-none cursor-pointer">
                     <option value="nordic">Čistý Nordic (Monochrom)</option>
-                    <option value="slate">Slate Accent (Břidlice)</option>
-                    <option value="minimal">Ultra Minimal (Mřížka)</option>
+                    <option value="slate">Slate Accent (Pohlaví barvy)</option>
+                    <option value="minimal">Ultra Minimal (Ostré linie)</option>
                 </select>
             </div>
 
@@ -75,17 +74,17 @@
         </div>
     </header>
 
-    <!-- Main Content Area -->
+    <!-- Main Workspace -->
     <div class="flex-1 flex overflow-hidden relative">
         
-        <!-- Left Sidebar: Persons List -->
+        <!-- Left Sidebar -->
         <aside class="w-80 bg-white border-r border-slate-200 flex flex-col z-10 shadow-sm">
             <div class="p-4 border-b border-slate-100 flex items-center justify-between">
                 <div class="font-semibold text-slate-800 flex items-center space-x-2">
                     <span>OSOBY V RODOKMENU</span>
                     <span id="person-count" class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
                 </div>
-                <button onclick="createNewPerson()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded flex items-center space-x-1 transition-all">
+                <button onclick="createNewPerson()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md flex items-center space-x-1 font-medium transition-all">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                     <span>Nová</span>
                 </button>
@@ -98,14 +97,11 @@
                 </div>
             </div>
 
-            <div id="person-list" class="flex-1 overflow-y-auto divide-y divide-slate-100">
-                <!-- Person items populated dynamically -->
-            </div>
+            <div id="person-list" class="flex-1 overflow-y-auto divide-y divide-slate-100"></div>
         </aside>
 
-        <!-- Canvas / Tree Area -->
+        <!-- Canvas -->
         <main class="flex-1 relative overflow-hidden canvas-container bg-slate-50/50" id="canvas-wrapper">
-            
             <svg id="tree-svg" class="w-full h-full absolute inset-0 cursor-grab active:cursor-grabbing">
                 <g id="viewport">
                     <g id="lines-group"></g>
@@ -113,7 +109,7 @@
                 </g>
             </svg>
 
-            <!-- Navigation / Pan-Zoom Controls -->
+            <!-- Controls -->
             <div class="absolute bottom-6 right-6 flex flex-col bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
                 <button onclick="zoomIn()" class="p-2 hover:bg-slate-50 border-b border-slate-100 text-slate-600 hover:text-slate-900 transition-all" title="Přiblížit">
                     <i data-lucide="plus" class="w-5 h-5"></i>
@@ -126,7 +122,7 @@
                 </button>
             </div>
 
-            <!-- Empty State Prompt -->
+            <!-- Empty State -->
             <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <div class="bg-white/90 backdrop-blur border border-slate-200 p-8 rounded-2xl shadow-xl max-w-md text-center pointer-events-auto">
                     <div class="w-12 h-12 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -147,13 +143,12 @@
                     </div>
                 </div>
             </div>
-
         </main>
     </div>
 
     <!-- Edit Modal -->
     <div id="edit-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden transform transition-all">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                 <h3 class="font-bold text-slate-800 text-lg">Detail osoby</h3>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200/50 transition-all">
@@ -236,37 +231,34 @@
         </div>
     </div>
 
-    <!-- Application Script -->
+    <!-- Main Logic Script -->
     <script>
-        // State
         let persons = {};
         let families = {};
         let activePersonId = null;
-        let currentViewMode = 'ancestors'; // ancestors, descendants, all
+        let currentViewMode = 'ancestors';
         let currentTemplate = 'nordic';
+        let collapsedNodes = new Set();
 
-        // Pan Zoom variables
+        // Canvas Pan/Zoom
         let scale = 1;
         let panX = 0;
         let panY = 0;
         let isDragging = false;
-        let startX = 0;
-        let startY = 0;
+        let startX = 0, startY = 0;
 
-        // Node Dimensions
-        const CARD_WIDTH = 220;
-        const CARD_HEIGHT = 90;
-        const GAP_X = 50;
-        const GAP_Y = 80;
+        const CARD_WIDTH = 190;
+        const CARD_HEIGHT = 82;
+        const PAIR_GAP = 16;
+        const GAP_X = 40;
+        const GAP_Y = 90;
 
-        // Initialize App
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             setupPanZoom();
             updateEmptyState();
         });
 
-        // Toggle Maiden Name Field
         function toggleMaidenNameField() {
             const sex = document.getElementById('edit-sex').value;
             const container = document.getElementById('maiden-name-container');
@@ -277,19 +269,16 @@
             }
         }
 
-        // GEDCOM Parser
         function parseGedcom(text) {
             const lines = text.split(/\r?\n/);
             const newPersons = {};
             const newFamilies = {};
-
             let currentRecord = null;
             let currentType = null;
 
             for (let line of lines) {
                 line = line.trim();
                 if (!line) continue;
-
                 const match = line.match(/^(\d+)\s+(@[^@]+@|[^\s]+)\s*(.*)$/);
                 if (!match) continue;
 
@@ -300,30 +289,14 @@
                 if (level === 0) {
                     if (value === 'INDI') {
                         currentType = 'INDI';
-                        currentRecord = {
-                            id: tagOrId,
-                            givenName: '',
-                            surname: '',
-                            maidenName: '',
-                            sex: 'M',
-                            birthDate: '',
-                            deathDate: '',
-                            famc: null,
-                            fams: []
-                        };
+                        currentRecord = { id: tagOrId, givenName: '', surname: '', maidenName: '', sex: 'M', birthDate: '', deathDate: '', famc: null, fams: [] };
                         newPersons[tagOrId] = currentRecord;
                     } else if (value === 'FAM') {
                         currentType = 'FAM';
-                        currentRecord = {
-                            id: tagOrId,
-                            husband: null,
-                            wife: null,
-                            children: []
-                        };
+                        currentRecord = { id: tagOrId, husband: null, wife: null, children: [] };
                         newFamilies[tagOrId] = currentRecord;
                     } else {
-                        currentType = null;
-                        currentRecord = null;
+                        currentType = null; currentRecord = null;
                     }
                 } else if (currentRecord && level === 1) {
                     if (currentType === 'INDI') {
@@ -335,31 +308,18 @@
                             } else {
                                 currentRecord.givenName = value.trim();
                             }
-                        } else if (tagOrId === 'SEX') {
-                            currentRecord.sex = value.trim().toUpperCase();
-                        } else if (tagOrId === 'FAMC') {
-                            currentRecord.famc = value.trim();
-                        } else if (tagOrId === 'FAMS') {
-                            currentRecord.fams.push(value.trim());
-                        } else if (tagOrId === '_MAIDEN' || tagOrId === '_MARNM') {
-                            currentRecord.maidenName = value.trim();
-                        }
+                        } else if (tagOrId === 'SEX') currentRecord.sex = value.trim().toUpperCase();
+                        else if (tagOrId === 'FAMC') currentRecord.famc = value.trim();
+                        else if (tagOrId === 'FAMS') currentRecord.fams.push(value.trim());
+                        else if (tagOrId === '_MAIDEN' || tagOrId === '_MARNM') currentRecord.maidenName = value.trim();
                     } else if (currentType === 'FAM') {
                         if (tagOrId === 'HUSB') currentRecord.husband = value.trim();
                         if (tagOrId === 'WIFE') currentRecord.wife = value.trim();
                         if (tagOrId === 'CHIL') currentRecord.children.push(value.trim());
                     }
-                } else if (currentRecord && level === 2) {
-                    if (currentType === 'INDI') {
-                        if (tagOrId === 'DATE') {
-                            // Simple heuristic based on parent tag context if needed, 
-                            // here we check if birth/death were preceding tag
-                        }
-                    }
                 }
             }
 
-            // Second pass for birth / death dates
             let lastTag = '';
             for (let line of lines) {
                 line = line.trim();
@@ -369,33 +329,25 @@
                 const tag = match[2];
                 const val = match[3];
 
-                if (level === 0) {
-                    currentRecord = newPersons[tag] || newFamilies[tag] || null;
-                } else if (level === 1) {
-                    lastTag = tag;
-                } else if (level === 2 && tag === 'DATE' && currentRecord && currentRecord.givenName !== undefined) {
+                if (level === 0) currentRecord = newPersons[tag] || newFamilies[tag] || null;
+                else if (level === 1) lastTag = tag;
+                else if (level === 2 && tag === 'DATE' && currentRecord && currentRecord.givenName !== undefined) {
                     if (lastTag === 'BIRT') currentRecord.birthDate = val;
                     if (lastTag === 'DEAT') currentRecord.deathDate = val;
                 }
             }
 
-            // Extract Maiden name heuristic if female and missing
             Object.values(newPersons).forEach(p => {
-                if (p.sex === 'F' && !p.maidenName && p.surname) {
-                    p.maidenName = p.surname;
-                }
+                if (p.sex === 'F' && !p.maidenName && p.surname) p.maidenName = p.surname;
             });
 
             return { persons: newPersons, families: newFamilies };
         }
 
-        // GEDCOM Export
         function exportGedcom() {
-            let ged = "0 HEAD\n1 SOUR RodokmenStudio\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n";
-
+            let ged = "0 HEAD\n1 SOUR RodokmenStudio\n1 GEDC\n2 VERS 5.5.1\n1 CHAR UTF-8\n";
             Object.values(persons).forEach(p => {
-                ged += `0 ${p.id} INDI\n`;
-                ged += `1 NAME ${p.givenName} /${p.surname}/\n`;
+                ged += `0 ${p.id} INDI\n1 NAME ${p.givenName} /${p.surname}/\n`;
                 if (p.sex) ged += `1 SEX ${p.sex}\n`;
                 if (p.maidenName) ged += `1 _MAIDEN ${p.maidenName}\n`;
                 if (p.birthDate) ged += `1 BIRT\n2 DATE ${p.birthDate}\n`;
@@ -403,14 +355,12 @@
                 if (p.famc) ged += `1 FAMC ${p.famc}\n`;
                 (p.fams || []).forEach(f => { ged += `1 FAMS ${f}\n`; });
             });
-
             Object.values(families).forEach(f => {
                 ged += `0 ${f.id} FAM\n`;
                 if (f.husband) ged += `1 HUSB ${f.husband}\n`;
                 if (f.wife) ged += `1 WIFE ${f.wife}\n`;
                 (f.children || []).forEach(c => { ged += `1 CHIL ${c}\n`; });
             });
-
             ged += "0 TRLR\n";
 
             const blob = new Blob([ged], { type: 'text/plain;charset=utf-8' });
@@ -420,25 +370,17 @@
             link.click();
         }
 
-        // File Upload Handler
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(e) {
-                const content = e.target.result;
-                const parsed = parseGedcom(content);
+                const parsed = parseGedcom(e.target.result);
                 persons = parsed.persons;
                 families = parsed.families;
-
+                collapsedNodes.clear();
                 const keys = Object.keys(persons);
-                if (keys.length > 0) {
-                    activePersonId = keys[0];
-                } else {
-                    activePersonId = null;
-                }
-
+                activePersonId = keys.length > 0 ? keys[0] : null;
                 updateEmptyState();
                 renderPersonList();
                 renderTree();
@@ -447,12 +389,10 @@
             reader.readAsText(file);
         }
 
-        // Render Person Sidebar List
         function renderPersonList() {
             const container = document.getElementById('person-list');
             const search = document.getElementById('search-input').value.toLowerCase();
             document.getElementById('person-count').innerText = Object.keys(persons).length;
-
             container.innerHTML = '';
 
             const sorted = Object.values(persons).sort((a,b) => {
@@ -475,23 +415,19 @@
                 const maiden = (p.sex === 'F' && p.maidenName) ? ` (${p.maidenName})` : '';
 
                 div.innerHTML = `
-                    <div class="overflow-hidden pr-2" onclick="setActivePerson('${p.id}')">
+                    <div class="overflow-hidden pr-2 flex-1" onclick="setActivePerson('${p.id}')">
                         <div class="font-medium text-slate-800 text-sm truncate">
                             ${p.givenName || 'Neznámé'} <span class="font-bold">${p.surname || ''}</span>
                             <span class="text-xs text-slate-400 font-normal">${maiden}</span>
                         </div>
                         <div class="text-xs text-slate-400 truncate">${dates}</div>
                     </div>
-                    <div class="flex items-center space-x-1">
-                        <button onclick="openEditModal('${p.id}'); event.stopPropagation();" class="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-700">
-                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
+                    <button onclick="openEditModal('${p.id}'); event.stopPropagation();" class="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-700">
+                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                    </button>
                 `;
-
                 container.appendChild(div);
             });
-
             lucide.createIcons();
         }
 
@@ -505,11 +441,9 @@
             currentViewMode = mode;
             ['ancestors', 'descendants', 'all'].forEach(m => {
                 const btn = document.getElementById(`btn-view-${m}`);
-                if (m === mode) {
-                    btn.className = "px-3 py-1.5 rounded-md font-medium transition-all bg-white shadow-sm text-slate-900";
-                } else {
-                    btn.className = "px-3 py-1.5 rounded-md font-medium text-slate-600 hover:text-slate-900 transition-all";
-                }
+                btn.className = (m === mode) 
+                    ? "px-3 py-1.5 rounded-md font-medium transition-all bg-white shadow-sm text-slate-900"
+                    : "px-3 py-1.5 rounded-md font-medium text-slate-600 hover:text-slate-900 transition-all";
             });
             renderTree();
             resetZoom();
@@ -520,7 +454,14 @@
             renderTree();
         }
 
-        // Layout Engine & Tree Rendering
+        function toggleCollapse(id, e) {
+            e.stopPropagation();
+            if (collapsedNodes.has(id)) collapsedNodes.delete(id);
+            else collapsedNodes.add(id);
+            renderTree();
+        }
+
+        // --- TREE RENDERING LOGIC ---
         function renderTree() {
             const linesGroup = document.getElementById('lines-group');
             const nodesGroup = document.getElementById('nodes-group');
@@ -531,22 +472,46 @@
 
             let nodes = [];
             let connections = [];
+            let marriageConnectors = [];
 
             if (currentViewMode === 'ancestors') {
-                const layout = buildAncestorsLayout(activePersonId);
+                const layout = buildAncestorsClean(activePersonId);
                 nodes = layout.nodes;
                 connections = layout.connections;
+                marriageConnectors = layout.marriages;
             } else if (currentViewMode === 'descendants') {
-                const layout = buildDescendantsLayout(activePersonId);
+                const layout = buildDescendantsClean(activePersonId);
                 nodes = layout.nodes;
                 connections = layout.connections;
+                marriageConnectors = layout.marriages;
             } else {
-                const layout = buildAllTreeLayout();
+                const layout = buildAllTreeClean();
                 nodes = layout.nodes;
                 connections = layout.connections;
+                marriageConnectors = layout.marriages;
             }
 
-            // Draw Connections (Lines)
+            // Draw Marriage Lines (Horizontal Bar between Spouses)
+            marriageConnectors.forEach(m => {
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                path.setAttribute("x1", m.x1);
+                path.setAttribute("y1", m.y);
+                path.setAttribute("x2", m.x2);
+                path.setAttribute("y2", m.y);
+                path.setAttribute("stroke", "#475569");
+                path.setAttribute("stroke-width", "3");
+                linesGroup.appendChild(path);
+
+                // Connector Dot in Middle
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", (m.x1 + m.x2) / 2);
+                circle.setAttribute("cy", m.y);
+                circle.setAttribute("r", "4");
+                circle.setAttribute("fill", "#0f172a");
+                linesGroup.appendChild(circle);
+            });
+
+            // Draw Parent-Child Connection Lines
             connections.forEach(conn => {
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 const midY = (conn.y1 + conn.y2) / 2;
@@ -559,7 +524,7 @@
                 linesGroup.appendChild(path);
             });
 
-            // Draw Nodes (Cards)
+            // Draw Individual Cards
             nodes.forEach(node => {
                 const p = persons[node.id];
                 if (!p) return;
@@ -569,215 +534,285 @@
                 g.setAttribute("class", "cursor-pointer");
                 g.onclick = () => openEditModal(node.id);
 
-                // Styling based on template
                 let cardBg = "#ffffff";
-                let cardBorder = "#e2e8f0";
-                let textPrimary = "#0f172a";
-                let textSecondary = "#64748b";
+                let cardBorder = node.id === activePersonId ? "#0f172a" : "#e2e8f0";
                 let accentBar = null;
 
                 if (currentTemplate === 'slate') {
-                    cardBorder = "#cbd5e1";
                     accentBar = p.sex === 'F' ? "#ec4899" : "#3b82f6";
                 } else if (currentTemplate === 'minimal') {
-                    cardBorder = "#94a3b8";
+                    cardBorder = node.id === activePersonId ? "#0f172a" : "#cbd5e1";
                 }
 
-                if (node.id === activePersonId) {
-                    cardBorder = "#0f172a";
-                }
-
-                // Card background rect
+                // Card Rect
                 const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                 rect.setAttribute("width", CARD_WIDTH);
                 rect.setAttribute("height", CARD_HEIGHT);
-                rect.setAttribute("rx", "10");
+                rect.setAttribute("rx", "8");
                 rect.setAttribute("fill", cardBg);
                 rect.setAttribute("stroke", cardBorder);
                 rect.setAttribute("stroke-width", node.id === activePersonId ? "2.5" : "1.5");
-                rect.setAttribute("class", "shadow-sm hover:shadow-md transition-all");
                 g.appendChild(rect);
 
-                // Accent Bar for Slate template
+                // Accent Strip
                 if (accentBar) {
                     const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                     bar.setAttribute("width", "4");
-                    bar.setAttribute("height", CARD_HEIGHT - 12);
-                    bar.setAttribute("x", "6");
-                    bar.setAttribute("y", "6");
+                    bar.setAttribute("height", CARD_HEIGHT - 10);
+                    bar.setAttribute("x", "5");
+                    bar.setAttribute("y", "5");
                     bar.setAttribute("rx", "2");
                     bar.setAttribute("fill", accentBar);
                     g.appendChild(bar);
                 }
 
-                // Name Text
+                // Full Name
                 const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                nameText.setAttribute("x", accentBar ? "20" : "16");
-                nameText.setAttribute("y", "28");
-                nameText.setAttribute("font-size", "14");
+                nameText.setAttribute("x", accentBar ? "18" : "14");
+                nameText.setAttribute("y", "26");
+                nameText.setAttribute("font-size", "13");
                 nameText.setAttribute("font-weight", "700");
-                nameText.setAttribute("fill", textPrimary);
-                nameText.textContent = `${p.givenName || ''} ${p.surname || ''}`;
+                nameText.setAttribute("fill", "#0f172a");
+                
+                let displayName = `${p.givenName || ''} ${p.surname || ''}`;
+                if (displayName.length > 20) displayName = displayName.substring(0, 18) + '…';
+                nameText.textContent = displayName;
                 g.appendChild(nameText);
 
-                // Maiden Name (if female)
-                let currentY = 46;
+                // Maiden Name
+                let currentY = 44;
                 if (p.sex === 'F' && p.maidenName) {
                     const maidenText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    maidenText.setAttribute("x", accentBar ? "20" : "16");
+                    maidenText.setAttribute("x", accentBar ? "18" : "14");
                     maidenText.setAttribute("y", currentY);
                     maidenText.setAttribute("font-size", "11");
-                    maidenText.setAttribute("fill", textSecondary);
-                    maidenText.textContent = `rodná: ${p.maidenName}`;
+                    maidenText.setAttribute("fill", "#64748b");
+                    
+                    let mName = `rodná: ${p.maidenName}`;
+                    if (mName.length > 22) mName = mName.substring(0, 20) + '…';
+                    maidenText.textContent = mName;
                     g.appendChild(maidenText);
-                    currentY += 18;
+                    currentY += 16;
                 }
 
                 // Dates
                 const dates = [p.birthDate ? `* ${p.birthDate}` : '', p.deathDate ? `+ ${p.deathDate}` : ''].filter(Boolean).join(' ');
                 if (dates) {
                     const dateText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    dateText.setAttribute("x", accentBar ? "20" : "16");
-                    dateText.setAttribute("y", currentY + 4);
-                    dateText.setAttribute("font-size", "11");
-                    dateText.setAttribute("fill", textSecondary);
-                    dateText.textContent = dates;
+                    dateText.setAttribute("x", accentBar ? "18" : "14");
+                    dateText.setAttribute("y", currentY + 2);
+                    dateText.setAttribute("font-size", "10");
+                    dateText.setAttribute("fill", "#94a3b8");
+                    dateText.textContent = dates.length > 24 ? dates.substring(0, 22) + '…' : dates;
                     g.appendChild(dateText);
+                }
+
+                // Collapse/Expand Button (+/-)
+                if (node.hasChildren) {
+                    const btn = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    btn.setAttribute("transform", `translate(${CARD_WIDTH / 2 - 10}, ${CARD_HEIGHT - 10})`);
+                    btn.onclick = (e) => toggleCollapse(node.id, e);
+
+                    const btnCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    btnCircle.setAttribute("cx", "10");
+                    btnCircle.setAttribute("cy", "10");
+                    btnCircle.setAttribute("r", "9");
+                    btnCircle.setAttribute("fill", "#ffffff");
+                    btnCircle.setAttribute("stroke", "#64748b");
+                    btnCircle.setAttribute("stroke-width", "1.5");
+
+                    const btnText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    btnText.setAttribute("x", "10");
+                    btnText.setAttribute("y", "14");
+                    btnText.setAttribute("text-anchor", "middle");
+                    btnText.setAttribute("font-size", "12");
+                    btnText.setAttribute("font-weight", "bold");
+                    btnText.setAttribute("fill", "#334155");
+                    btnText.textContent = collapsedNodes.has(node.id) ? "+" : "-";
+
+                    btn.appendChild(btnCircle);
+                    btn.appendChild(btnText);
+                    g.appendChild(btn);
                 }
 
                 nodesGroup.appendChild(g);
             });
         }
 
-        // Layout: Ancestors (Vývod)
-        function buildAncestorsLayout(rootId) {
+        // Ancestors Tree Builder
+        function buildAncestorsClean(rootId) {
             const nodes = [];
             const connections = [];
+            const marriages = [];
 
-            function traverse(id, level, xOffset) {
-                if (!id || !persons[id]) return null;
+            function processPerson(id, level) {
+                if (!id || !persons[id]) return { width: CARD_WIDTH, x: 0, id: null };
                 const p = persons[id];
 
+                if (collapsedNodes.has(id) || !p.famc || !families[p.famc]) {
+                    return { width: CARD_WIDTH, x: 0, id, hasChildren: !!(p.famc && families[p.famc]) };
+                }
+
+                const fam = families[p.famc];
+                const husband = fam.husband;
+                const wife = fam.wife;
+
+                let leftSub = processPerson(husband, level + 1);
+                let rightSub = processPerson(wife, level + 1);
+
+                const totalWidth = Math.max(CARD_WIDTH * 2 + PAIR_GAP, leftSub.width + rightSub.width + GAP_X);
+                return {
+                    width: totalWidth,
+                    leftSub,
+                    rightSub,
+                    id,
+                    husband,
+                    wife,
+                    hasChildren: true
+                };
+            }
+
+            function positionTree(subTree, startX, level) {
+                if (!subTree || !subTree.id) return;
                 const y = -level * (CARD_HEIGHT + GAP_Y);
-                const node = { id, x: xOffset, y };
-                nodes.push(node);
 
-                if (p.famc && families[p.famc]) {
-                    const fam = families[p.famc];
-                    const width = Math.max(1, Math.pow(2, 3 - level)) * (CARD_WIDTH + GAP_X) / 2;
+                if (!subTree.husband && !subTree.wife) {
+                    const nodeX = startX + (subTree.width / 2) - (CARD_WIDTH / 2);
+                    nodes.push({ id: subTree.id, x: nodeX, y, hasChildren: subTree.hasChildren });
+                    return { x: nodeX + CARD_WIDTH / 2, y };
+                }
 
-                    let fatherNode = null;
-                    let motherNode = null;
+                // Couple positioning
+                const midX = startX + subTree.width / 2;
+                let hX = midX - CARD_WIDTH - (PAIR_GAP / 2);
+                let wX = midX + (PAIR_GAP / 2);
 
-                    if (fam.husband) {
-                        fatherNode = traverse(fam.husband, level + 1, xOffset - width / 2);
-                    }
-                    if (fam.wife) {
-                        motherNode = traverse(fam.wife, level + 1, xOffset + width / 2);
-                    }
-
-                    if (fatherNode) {
-                        connections.push({
-                            x1: node.x + CARD_WIDTH / 2, y1: node.y,
-                            x2: fatherNode.x + CARD_WIDTH / 2, y2: fatherNode.y + CARD_HEIGHT
-                        });
-                    }
-                    if (motherNode) {
-                        connections.push({
-                            x1: node.x + CARD_WIDTH / 2, y1: node.y,
-                            x2: motherNode.x + CARD_WIDTH / 2, y2: motherNode.y + CARD_HEIGHT
-                        });
+                if (subTree.husband) {
+                    nodes.push({ id: subTree.husband, x: hX, y, hasChildren: subTree.leftSub.hasChildren });
+                    if (subTree.leftSub && subTree.leftSub.husband) {
+                        const childConn = positionTree(subTree.leftSub, startX, level + 1);
+                        if (childConn) {
+                            connections.push({ x1: hX + CARD_WIDTH / 2, y1: y, x2: childConn.x, y2: childConn.y + CARD_HEIGHT });
+                        }
                     }
                 }
 
-                return node;
+                if (subTree.wife) {
+                    nodes.push({ id: subTree.wife, x: wX, y, hasChildren: subTree.rightSub.hasChildren });
+                    if (subTree.rightSub && subTree.rightSub.wife) {
+                        const childConn = positionTree(subTree.rightSub, startX + subTree.leftSub.width + GAP_X, level + 1);
+                        if (childConn) {
+                            connections.push({ x1: wX + CARD_WIDTH / 2, y1: y, x2: childConn.x, y2: childConn.y + CARD_HEIGHT });
+                        }
+                    }
+                }
+
+                if (subTree.husband && subTree.wife) {
+                    marriages.push({ x1: hX + CARD_WIDTH, x2: wX, y: y + CARD_HEIGHT / 2 });
+                }
+
+                return { x: midX, y };
             }
 
-            traverse(rootId, 0, 0);
-            return { nodes, connections };
+            // Root Person
+            const rootNode = { id: rootId, x: 0, y: 0, hasChildren: !!(persons[rootId].famc) };
+            nodes.push(rootNode);
+
+            if (persons[rootId].famc && families[persons[rootId].famc]) {
+                const fam = families[persons[rootId].famc];
+                const tree = processPerson(rootId, 0);
+                const parentCenter = positionTree(tree, -tree.width / 2 + CARD_WIDTH / 2, 1);
+                
+                if (parentCenter) {
+                    connections.push({
+                        x1: rootNode.x + CARD_WIDTH / 2,
+                        y1: rootNode.y,
+                        x2: parentCenter.x,
+                        y2: parentCenter.y + CARD_HEIGHT / 2
+                    });
+                }
+            }
+
+            return { nodes, connections, marriages };
         }
 
-        // Layout: Descendants (Rozrod)
-        function buildDescendantsLayout(rootId) {
+        // Descendants Tree Builder
+        function buildDescendantsClean(rootId) {
             const nodes = [];
             const connections = [];
+            const marriages = [];
 
             function traverse(id, level, startX) {
-                if (!id || !persons[id]) return { node: null, width: 0 };
+                if (!id || !persons[id]) return { width: CARD_WIDTH, x: startX };
                 const p = persons[id];
+                const y = level * (CARD_HEIGHT + GAP_Y);
 
-                const fams = p.fams || [];
                 let children = [];
-                fams.forEach(fId => {
+                (p.fams || []).forEach(fId => {
                     if (families[fId] && families[fId].children) {
                         children = children.concat(families[fId].children);
                     }
                 });
 
-                if (children.length === 0) {
-                    const y = level * (CARD_HEIGHT + GAP_Y);
-                    const node = { id, x: startX, y };
-                    nodes.push(node);
-                    return { node, width: CARD_WIDTH + GAP_X };
+                if (children.length === 0 || collapsedNodes.has(id)) {
+                    const nodeX = startX;
+                    nodes.push({ id, x: nodeX, y, hasChildren: children.length > 0 });
+                    return { width: CARD_WIDTH + GAP_X, x: nodeX };
                 }
 
                 let currentX = startX;
-                const childNodes = [];
+                const childCoords = [];
 
                 children.forEach(cId => {
                     const res = traverse(cId, level + 1, currentX);
-                    if (res.node) childNodes.push(res.node);
+                    childCoords.push({ x: res.x + CARD_WIDTH / 2, y: (level + 1) * (CARD_HEIGHT + GAP_Y) });
                     currentX += Math.max(res.width, CARD_WIDTH + GAP_X);
                 });
 
-                const totalWidth = currentX - startX;
+                const totalWidth = currentX - startX - GAP_X;
                 const nodeX = startX + (totalWidth / 2) - (CARD_WIDTH / 2);
-                const node = { id, x: nodeX, y: level * (CARD_HEIGHT + GAP_Y) };
-                nodes.push(node);
+                nodes.push({ id, x: nodeX, y, hasChildren: true });
 
-                childNodes.forEach(cNode => {
+                childCoords.forEach(cc => {
                     connections.push({
-                        x1: node.x + CARD_WIDTH / 2, y1: node.y + CARD_HEIGHT,
-                        x2: cNode.x + CARD_WIDTH / 2, y2: cNode.y
+                        x1: nodeX + CARD_WIDTH / 2, y1: y + CARD_HEIGHT,
+                        x2: cc.x, y2: cc.y
                     });
                 });
 
-                return { node, width: totalWidth };
+                return { width: totalWidth + GAP_X, x: nodeX };
             }
 
             traverse(rootId, 0, 0);
-            return { nodes, connections };
+            return { nodes, connections, marriages };
         }
 
-        // Layout: All Tree (Celý rodokmen)
-        function buildAllTreeLayout() {
+        // All Tree Layout
+        function buildAllTreeClean() {
             const nodes = [];
             const connections = [];
+            const marriages = [];
             const levels = {};
 
-            // Calculate level/generation for all persons
             Object.keys(persons).forEach(id => { levels[id] = 0; });
 
-            let changed = true;
-            let iter = 0;
-            while (changed && iter < 10) {
-                changed = false;
-                iter++;
+            let changed = true, iter = 0;
+            while (changed && iter < 12) {
+                changed = false; iter++;
                 Object.values(families).forEach(fam => {
                     const hLevel = fam.husband ? levels[fam.husband] : null;
                     const wLevel = fam.wife ? levels[fam.wife] : null;
-                    const parentLevel = Math.max(hLevel || 0, wLevel || 0);
+                    const pLevel = Math.max(hLevel || 0, wLevel || 0);
 
                     (fam.children || []).forEach(cId => {
-                        if (levels[cId] !== parentLevel + 1) {
-                            levels[cId] = parentLevel + 1;
+                        if (levels[cId] !== pLevel + 1) {
+                            levels[cId] = pLevel + 1;
                             changed = true;
                         }
                     });
                 });
             }
 
-            // Group by level
             const levelGroups = {};
             Object.keys(persons).forEach(id => {
                 const lvl = levels[id];
@@ -785,28 +820,34 @@
                 levelGroups[lvl].push(id);
             });
 
-            // Position nodes in rows
             Object.keys(levelGroups).forEach(lvlStr => {
                 const lvl = parseInt(lvlStr);
                 const pIds = levelGroups[lvl];
-                const totalRowWidth = pIds.length * (CARD_WIDTH + GAP_X);
-                let startX = -totalRowWidth / 2;
+                const rowWidth = pIds.length * (CARD_WIDTH + GAP_X);
+                let startX = -rowWidth / 2;
 
                 pIds.forEach(id => {
-                    nodes.push({
-                        id,
-                        x: startX,
-                        y: lvl * (CARD_HEIGHT + GAP_Y)
-                    });
+                    nodes.push({ id, x: startX, y: lvl * (CARD_HEIGHT + GAP_Y), hasChildren: false });
                     startX += CARD_WIDTH + GAP_X;
                 });
             });
 
-            // Map connections
             const nodeMap = {};
             nodes.forEach(n => { nodeMap[n.id] = n; });
 
             Object.values(families).forEach(fam => {
+                if (fam.husband && fam.wife && nodeMap[fam.husband] && nodeMap[fam.wife]) {
+                    const hNode = nodeMap[fam.husband];
+                    const wNode = nodeMap[fam.wife];
+                    if (Math.abs(hNode.y - wNode.y) < 10) {
+                        marriages.push({
+                            x1: Math.min(hNode.x, wNode.x) + CARD_WIDTH,
+                            x2: Math.max(hNode.x, wNode.x),
+                            y: hNode.y + CARD_HEIGHT / 2
+                        });
+                    }
+                }
+
                 const parents = [fam.husband, fam.wife].filter(Boolean);
                 (fam.children || []).forEach(cId => {
                     const cNode = nodeMap[cId];
@@ -824,13 +865,12 @@
                 });
             });
 
-            return { nodes, connections };
+            return { nodes, connections, marriages };
         }
 
-        // Pan Zoom Logic
+        // Controls & Interactivity
         function setupPanZoom() {
             const svg = document.getElementById('tree-svg');
-
             svg.addEventListener('mousedown', (e) => {
                 if (e.target.tagName === 'svg' || e.target.id === 'lines-group') {
                     isDragging = true;
@@ -838,7 +878,6 @@
                     startY = e.clientY - panY;
                 }
             });
-
             window.addEventListener('mousemove', (e) => {
                 if (isDragging) {
                     panX = e.clientX - startX;
@@ -846,37 +885,32 @@
                     updateViewportTransform();
                 }
             });
-
             window.addEventListener('mouseup', () => { isDragging = false; });
-
             svg.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-                scale = Math.min(Math.max(0.2, scale * zoomFactor), 3);
+                scale = Math.min(Math.max(0.15, scale * zoomFactor), 3);
                 updateViewportTransform();
             });
         }
 
         function updateViewportTransform() {
-            const viewport = document.getElementById('viewport');
-            viewport.setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
+            document.getElementById('viewport').setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
         }
 
         function zoomIn() { scale = Math.min(3, scale * 1.2); updateViewportTransform(); }
-        function zoomOut() { scale = Math.max(0.2, scale / 1.2); updateViewportTransform(); }
+        function zoomOut() { scale = Math.max(0.15, scale / 1.2); updateViewportTransform(); }
         function resetZoom() {
             const wrapper = document.getElementById('canvas-wrapper');
-            panX = wrapper.clientWidth / 2 - CARD_WIDTH / 2;
-            panY = wrapper.clientHeight / 2 - CARD_HEIGHT / 2;
-            scale = 1;
+            panX = wrapper.clientWidth / 2;
+            panY = wrapper.clientHeight / 3;
+            scale = 0.85;
             updateViewportTransform();
         }
 
-        // Modal Controls
         function openEditModal(id) {
             const p = persons[id];
             if (!p) return;
-
             document.getElementById('edit-id').value = p.id;
             document.getElementById('edit-givenName').value = p.givenName || '';
             document.getElementById('edit-surname').value = p.surname || '';
@@ -884,26 +918,21 @@
             document.getElementById('edit-maidenName').value = p.maidenName || '';
             document.getElementById('edit-birthDate').value = p.birthDate || '';
             document.getElementById('edit-deathDate').value = p.deathDate || '';
-
             toggleMaidenNameField();
             document.getElementById('edit-modal').classList.remove('hidden');
         }
 
-        function closeModal() {
-            document.getElementById('edit-modal').classList.add('hidden');
-        }
+        function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
 
         function savePersonModal() {
             const id = document.getElementById('edit-id').value;
             if (!persons[id]) return;
-
             persons[id].givenName = document.getElementById('edit-givenName').value;
             persons[id].surname = document.getElementById('edit-surname').value;
             persons[id].sex = document.getElementById('edit-sex').value;
             persons[id].maidenName = document.getElementById('edit-maidenName').value;
             persons[id].birthDate = document.getElementById('edit-birthDate').value;
             persons[id].deathDate = document.getElementById('edit-deathDate').value;
-
             closeModal();
             renderPersonList();
             renderTree();
@@ -911,18 +940,7 @@
 
         function createNewPerson() {
             const newId = `@I${Date.now()}@`;
-            persons[newId] = {
-                id: newId,
-                givenName: 'Nová',
-                surname: 'Osoba',
-                sex: 'M',
-                maidenName: '',
-                birthDate: '',
-                deathDate: '',
-                famc: null,
-                fams: []
-            };
-
+            persons[newId] = { id: newId, givenName: 'Nová', surname: 'Osoba', sex: 'M', maidenName: '', birthDate: '', deathDate: '', famc: null, fams: [] };
             activePersonId = newId;
             updateEmptyState();
             renderPersonList();
@@ -945,20 +963,14 @@
         function addRelative(type) {
             const currentId = document.getElementById('edit-id').value;
             const newId = `@I${Date.now()}@`;
-
             persons[newId] = {
                 id: newId,
                 givenName: type === 'father' ? 'Otec' : type === 'mother' ? 'Matka' : 'Dítě',
                 surname: persons[currentId].surname || '',
                 sex: type === 'mother' ? 'F' : 'M',
-                maidenName: '',
-                birthDate: '',
-                deathDate: '',
-                famc: null,
-                fams: []
+                maidenName: '', birthDate: '', deathDate: '', famc: null, fams: []
             };
 
-            // Link in families
             let famId = persons[currentId].famc;
             if (!famId && (type === 'father' || type === 'mother')) {
                 famId = `@F${Date.now()}@`;
@@ -976,20 +988,16 @@
         }
 
         function updateEmptyState() {
-            const isEmpty = Object.keys(persons).length === 0;
-            document.getElementById('empty-state').style.display = isEmpty ? 'flex' : 'none';
+            document.getElementById('empty-state').style.display = Object.keys(persons).length === 0 ? 'flex' : 'none';
         }
 
-        // SVG Export
         function exportSVG() {
             const svg = document.getElementById('tree-svg');
             const serializer = new XMLSerializer();
             let source = serializer.serializeToString(svg);
-
             if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
                 source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
             }
-
             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
             const downloadLink = document.createElement("a");
             downloadLink.href = url;
