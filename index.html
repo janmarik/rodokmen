@@ -3,68 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rodokmen Studio - Kompletní Generační Strom</title>
+    <title>Rodokmen Studio - Nordic Light</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
         body { font-family: 'Inter', sans-serif; }
-        .font-cinzel { font-family: 'Cinzel', serif; }
 
-        .bg-grid-pattern {
-            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 32px 32px;
+        .canvas-bg {
+            background-color: #fafafa;
+            background-image: radial-gradient(#e5e7eb 1.2px, transparent 1.2px);
+            background-size: 24px 24px;
         }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 h-screen flex flex-col overflow-hidden select-none">
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden select-none">
 
     <!-- Top Navigation Header -->
-    <header class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between z-20 shadow-lg">
+    <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between z-20 shadow-sm">
         <div class="flex items-center space-x-3">
-            <div class="p-2 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-lg">
+            <div class="p-2 bg-slate-900 text-white rounded-lg">
                 <i data-lucide="network" class="w-5 h-5"></i>
             </div>
             <div>
-                <h1 class="font-bold text-white text-lg leading-tight font-cinzel tracking-wide">Rodokmen Studio</h1>
-                <p class="text-xs text-amber-500/80">Neomezený generační rodokmen přímé linie</p>
+                <h1 class="font-bold text-slate-900 text-lg leading-tight">Rodokmen Studio</h1>
+                <p class="text-xs text-slate-500">Čisté rozvržení s přesným párováním</p>
             </div>
         </div>
 
-        <!-- Mode Controls -->
-        <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-1 bg-slate-950 border border-slate-800 p-1 rounded-lg text-xs">
-                <button id="btn-view-hourglass" onclick="setViewMode('hourglass')" class="px-3 py-1.5 rounded-md font-semibold transition-all bg-amber-500 text-slate-950 shadow">
-                    Ležaté Přesýpací Hodiny (Pracovní)
-                </button>
-                <button id="btn-view-poster" onclick="setViewMode('poster')" class="px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition-all">
-                    Plakát Přímé Linie (Tisk)
-                </button>
-            </div>
-
-            <div class="h-5 w-px bg-slate-800"></div>
-
-            <label class="cursor-pointer bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-200 font-medium px-3 py-1.5 rounded-lg text-xs flex items-center space-x-2 transition-all shadow-sm">
-                <i data-lucide="upload" class="w-4 h-4 text-amber-400"></i>
+        <!-- Controls -->
+        <div class="flex items-center space-x-3">
+            <label class="cursor-pointer bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium px-3.5 py-1.5 rounded-lg text-xs flex items-center space-x-2 transition-all shadow-sm">
+                <i data-lucide="upload" class="w-4 h-4 text-slate-500"></i>
                 <span>Načíst GEDCOM</span>
                 <input type="file" accept=".ged" onchange="handleFileUpload(event)" class="hidden">
             </label>
 
-            <button onclick="exportGedcom()" class="bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-200 font-medium px-3 py-1.5 rounded-lg text-xs flex items-center space-x-2 transition-all shadow-sm">
+            <button onclick="exportGedcom()" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium px-3.5 py-1.5 rounded-lg text-xs flex items-center space-x-2 transition-all shadow-sm">
                 <i data-lucide="download" class="w-4 h-4"></i>
                 <span>Uložit GEDCOM</span>
             </button>
 
-            <button onclick="exportSVG()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-1.5 rounded-lg text-xs flex items-center space-x-2 transition-all shadow-md">
+            <button onclick="exportSVG()" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-1.5 rounded-lg text-xs flex items-center space-x-2 transition-all shadow-md">
                 <i data-lucide="printer" class="w-4 h-4"></i>
-                <span>Exportovat SVG pro tisk</span>
+                <span>Export SVG pro tisk</span>
             </button>
         </div>
     </header>
@@ -73,66 +61,65 @@
     <div class="flex-1 flex overflow-hidden relative">
         
         <!-- Left Sidebar: People List -->
-        <aside class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col z-10 shadow-xl">
-            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-                <div class="font-semibold text-slate-200 text-xs tracking-wider flex items-center space-x-2">
+        <aside class="w-80 bg-white border-r border-slate-200 flex flex-col z-10 shadow-sm">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="font-semibold text-slate-700 text-xs tracking-wider flex items-center space-x-2">
                     <span>OSOBY V RODOKMENU</span>
-                    <span id="person-count" class="bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded-full font-mono border border-amber-500/30">0</span>
+                    <span id="person-count" class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-mono">0</span>
                 </div>
-                <button onclick="createNewPerson()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded-md flex items-center space-x-1 font-medium transition-all">
-                    <i data-lucide="plus" class="w-3.5 h-3.5 text-amber-400"></i>
+                <button onclick="createNewPerson()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md flex items-center space-x-1 font-medium transition-all">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                     <span>Nová</span>
                 </button>
             </div>
 
-            <div class="p-3 border-b border-slate-800">
+            <div class="p-3 border-b border-slate-100">
                 <div class="relative">
-                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-500"></i>
-                    <input type="text" id="search-input" oninput="renderPersonList()" placeholder="Hledat jméno..." class="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/50 transition-all">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                    <input type="text" id="search-input" oninput="renderPersonList()" placeholder="Hledat jméno..." class="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400 transition-all">
                 </div>
             </div>
 
-            <div id="person-list" class="flex-1 overflow-y-auto divide-y divide-slate-800/60"></div>
+            <div id="person-list" class="flex-1 overflow-y-auto divide-y divide-slate-100"></div>
         </aside>
 
         <!-- Canvas Area -->
-        <main class="flex-1 relative overflow-hidden bg-slate-950 bg-grid-pattern" id="canvas-wrapper">
+        <main class="flex-1 relative overflow-hidden canvas-bg" id="canvas-wrapper">
             <svg id="tree-svg" class="w-full h-full absolute inset-0 cursor-grab active:cursor-grabbing">
                 <g id="viewport">
-                    <g id="poster-bg"></g>
                     <g id="lines-group"></g>
                     <g id="nodes-group"></g>
                 </g>
             </svg>
 
             <!-- Navigation Controls -->
-            <div class="absolute bottom-6 right-6 flex flex-col bg-slate-900/90 backdrop-blur border border-slate-800 rounded-lg shadow-xl overflow-hidden">
-                <button onclick="zoomIn()" class="p-2 hover:bg-slate-800 text-slate-400 hover:text-white transition-all" title="Přiblížit">
+            <div class="absolute bottom-6 right-6 flex flex-col bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+                <button onclick="zoomIn()" class="p-2 hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-all" title="Přiblížit">
                     <i data-lucide="plus" class="w-5 h-5"></i>
                 </button>
-                <button onclick="zoomOut()" class="p-2 hover:bg-slate-800 text-slate-400 hover:text-white transition-all border-t border-b border-slate-800" title="Oddálit">
+                <button onclick="zoomOut()" class="p-2 hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-all border-t border-b border-slate-100" title="Oddálit">
                     <i data-lucide="minus" class="w-5 h-5"></i>
                 </button>
-                <button onclick="resetZoom()" class="p-2 hover:bg-slate-800 text-slate-400 hover:text-white transition-all" title="Vycentrovat">
+                <button onclick="resetZoom()" class="p-2 hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-all" title="Vycentrovat">
                     <i data-lucide="maximize-2" class="w-5 h-5"></i>
                 </button>
             </div>
 
             <!-- Empty State Prompt -->
             <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <div class="bg-slate-900/95 border border-amber-500/30 p-8 rounded-2xl shadow-2xl max-w-md text-center pointer-events-auto backdrop-blur">
-                    <div class="w-12 h-12 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div class="bg-white/95 border border-slate-200 p-8 rounded-2xl shadow-xl max-w-md text-center pointer-events-auto backdrop-blur">
+                    <div class="w-12 h-12 bg-slate-100 text-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i data-lucide="folder-open" class="w-6 h-6"></i>
                     </div>
-                    <h3 class="text-lg font-bold text-white mb-1 font-cinzel">Žádný rodokmen k zobrazení</h3>
-                    <p class="text-xs text-slate-400 mb-6 leading-relaxed">Nahrajte váš GEDCOM (.ged) soubor nebo vytvořte první osobu pro zobrazení kompletního vícegeneračního rodokmenu.</p>
+                    <h3 class="text-lg font-bold text-slate-900 mb-1">Žádný rodokmen k zobrazení</h3>
+                    <p class="text-xs text-slate-500 mb-6 leading-relaxed">Nahrajte váš GEDCOM (.ged) soubor nebo vytvořte první osobu pro sestavení přehledného rodokmenu.</p>
                     <div class="flex items-center justify-center space-x-3">
-                        <label class="cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs flex items-center space-x-2 transition-all">
+                        <label class="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-2 rounded-lg text-xs flex items-center space-x-2 transition-all">
                             <i data-lucide="upload" class="w-4 h-4"></i>
                             <span>Načíst GEDCOM</span>
                             <input type="file" accept=".ged" onchange="handleFileUpload(event)" class="hidden">
                         </label>
-                        <button onclick="createNewPerson()" class="bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 font-medium px-4 py-2 rounded-lg text-xs flex items-center space-x-2 transition-all">
+                        <button onclick="createNewPerson()" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium px-4 py-2 rounded-lg text-xs flex items-center space-x-2 transition-all">
                             <i data-lucide="plus" class="w-4 h-4"></i>
                             <span>Nová osoba</span>
                         </button>
@@ -143,11 +130,11 @@
     </div>
 
     <!-- Edit Modal -->
-    <div id="edit-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-        <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 w-full max-w-lg overflow-hidden text-slate-200">
-            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
-                <h3 class="font-bold text-white text-base font-cinzel">Detail osoby</h3>
-                <button onclick="closeModal()" class="text-slate-500 hover:text-slate-300 p-1 rounded-lg hover:bg-slate-800 transition-all">
+    <div id="edit-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden text-slate-800">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-900 text-base">Detail osoby</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200/50 transition-all">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -157,80 +144,80 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Jméno</label>
-                        <input type="text" id="edit-givenName" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-amber-500/50 transition-all">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Jméno</label>
+                        <input type="text" id="edit-givenName" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 transition-all">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Příjmení</label>
-                        <input type="text" id="edit-surname" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-amber-500/50 transition-all">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Příjmení</label>
+                        <input type="text" id="edit-surname" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 transition-all">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Pohlaví</label>
-                        <select id="edit-sex" onchange="updateGenderFields()" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-amber-500/50 transition-all">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Pohlaví</label>
+                        <select id="edit-sex" onchange="updateGenderFields()" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 transition-all bg-white">
                             <option value="M">Muž</option>
                             <option value="F">Žena</option>
                         </select>
                     </div>
                     <div id="maiden-name-container">
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Rodné příjmení</label>
-                        <input type="text" id="edit-maidenName" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-amber-500/50 transition-all">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Rodné příjmení</label>
+                        <input type="text" id="edit-maidenName" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 transition-all">
                     </div>
                 </div>
 
                 <!-- Czech Date Pickers -->
-                <div class="space-y-3 pt-2 border-t border-slate-800">
+                <div class="space-y-3 pt-2 border-t border-slate-100">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Datum narození</label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Datum narození</label>
                         <div class="grid grid-cols-3 gap-2">
-                            <select id="edit-birthDay" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500/50"></select>
-                            <select id="edit-birthMonth" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500/50"></select>
-                            <input type="number" id="edit-birthYear" placeholder="Rok (např. 1895)" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500/50">
+                            <select id="edit-birthDay" class="border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 bg-white focus:outline-none focus:border-slate-400"></select>
+                            <select id="edit-birthMonth" class="border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 bg-white focus:outline-none focus:border-slate-400"></select>
+                            <input type="number" id="edit-birthYear" placeholder="Rok" class="border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Datum úmrtí</label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Datum úmrtí</label>
                         <div class="grid grid-cols-3 gap-2">
-                            <select id="edit-deathDay" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500/50"></select>
-                            <select id="edit-deathMonth" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500/50"></select>
-                            <input type="number" id="edit-deathYear" placeholder="Rok (např. 1968)" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500/50">
+                            <select id="edit-deathDay" class="border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 bg-white focus:outline-none focus:border-slate-400"></select>
+                            <select id="edit-deathMonth" class="border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 bg-white focus:outline-none focus:border-slate-400"></select>
+                            <input type="number" id="edit-deathYear" placeholder="Rok" class="border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400">
                         </div>
                     </div>
                 </div>
 
                 <!-- Family Relatives Actions -->
-                <div class="pt-4 border-t border-slate-800">
-                    <label class="block text-xs font-semibold text-slate-400 mb-2">Vazby a rodina</label>
+                <div class="pt-4 border-t border-slate-100">
+                    <label class="block text-xs font-semibold text-slate-600 mb-2">Vazby a rodina</label>
                     <div class="flex flex-wrap gap-2">
-                        <button onclick="addRelative('father')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg flex items-center space-x-1 transition-all">
-                            <i data-lucide="plus" class="w-3 h-3 text-amber-400"></i>
+                        <button onclick="addRelative('father')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg flex items-center space-x-1 transition-all">
+                            <i data-lucide="plus" class="w-3 h-3"></i>
                             <span>Přidat otce</span>
                         </button>
-                        <button onclick="addRelative('mother')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg flex items-center space-x-1 transition-all">
-                            <i data-lucide="plus" class="w-3 h-3 text-amber-400"></i>
+                        <button onclick="addRelative('mother')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg flex items-center space-x-1 transition-all">
+                            <i data-lucide="plus" class="w-3 h-3"></i>
                             <span>Přidat matku</span>
                         </button>
-                        <button id="btn-add-spouse" onclick="addSpouse()" class="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-medium rounded-lg flex items-center space-x-1 transition-all">
-                            <i data-lucide="heart" class="w-3 h-3"></i>
+                        <button id="btn-add-spouse" onclick="addSpouse()" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-medium rounded-lg flex items-center space-x-1 transition-all">
+                            <i data-lucide="heart" class="w-3 h-3 text-amber-600"></i>
                             <span id="label-add-spouse">Přidat manželku</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div class="px-6 py-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
-                <button onclick="deleteCurrentPerson()" class="px-3 py-1.5 text-red-400 hover:bg-red-500/10 text-xs font-medium rounded-lg transition-all flex items-center space-x-1">
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                <button onclick="deleteCurrentPerson()" class="px-3 py-1.5 text-red-600 hover:bg-red-50 text-xs font-medium rounded-lg transition-all flex items-center space-x-1">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                     <span>Smazat osobu</span>
                 </button>
                 <div class="flex items-center space-x-2">
-                    <button onclick="closeModal()" class="px-4 py-2 border border-slate-700 text-slate-300 hover:bg-slate-800 text-xs font-medium rounded-lg transition-all">
+                    <button onclick="closeModal()" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-medium rounded-lg transition-all">
                         Zrušit
                     </button>
-                    <button onclick="savePersonModal()" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition-all">
+                    <button onclick="savePersonModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition-all">
                         Uložit změny
                     </button>
                 </div>
@@ -238,12 +225,11 @@
         </div>
     </div>
 
-    <!-- Application Script Engine -->
+    <!-- Application Engine Script -->
     <script>
         let persons = {};
         let families = {};
         let activePersonId = null;
-        let currentViewMode = 'hourglass';
 
         // Pan Zoom State
         let scale = 1;
@@ -252,11 +238,11 @@
         let isDragging = false;
         let startX = 0, startY = 0;
 
-        // Card Layout Sizes
-        const CARD_W = 200;
-        const CARD_H = 76;
-        const GAP_X = 90;
-        const GAP_Y = 24;
+        // Card Dimensions
+        const CARD_W = 190;
+        const CARD_H = 72;
+        const GAP_X = 80;
+        const BASE_GAP_Y = 16;
 
         // Czech Month Mapping
         const CZECH_MONTHS = ["", "Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"];
@@ -323,7 +309,7 @@
             return parts.join(' ');
         }
 
-        // GEDCOM Parser
+        // GEDCOM Parser Engine
         function parseGedcom(text) {
             const lines = text.split(/\r?\n/);
             const newPersons = {};
@@ -462,7 +448,7 @@
                 const isActive = p.id === activePersonId;
                 const div = document.createElement('div');
                 div.className = `p-3 flex items-center justify-between cursor-pointer transition-all ${
-                    isActive ? 'bg-slate-950 border-l-4 border-amber-500' : 'hover:bg-slate-950/40'
+                    isActive ? 'bg-slate-100 border-l-4 border-slate-900' : 'hover:bg-slate-50'
                 }`;
                 
                 const dates = [formatDisplayDate(p.birthDate), formatDisplayDate(p.deathDate)].filter(Boolean).join(' - ') || 'Bez datumu';
@@ -470,13 +456,13 @@
 
                 div.innerHTML = `
                     <div class="overflow-hidden pr-2 flex-1" onclick="setActivePerson('${p.id}')">
-                        <div class="font-medium text-slate-200 text-xs truncate">
-                            ${p.givenName || 'Neznámé'} <span class="font-bold text-white">${p.surname || ''}</span>
-                            <span class="text-xs text-amber-500/70 font-normal">${maiden}</span>
+                        <div class="font-medium text-slate-800 text-xs truncate">
+                            ${p.givenName || 'Neznámé'} <span class="font-bold text-slate-900">${p.surname || ''}</span>
+                            <span class="text-xs text-slate-400 font-normal">${maiden}</span>
                         </div>
-                        <div class="text-[10px] text-slate-500 truncate">${dates}</div>
+                        <div class="text-[10px] text-slate-400 truncate">${dates}</div>
                     </div>
-                    <button onclick="openEditModal('${p.id}'); event.stopPropagation();" class="p-1 hover:bg-slate-800 rounded text-slate-500 hover:text-amber-400">
+                    <button onclick="openEditModal('${p.id}'); event.stopPropagation();" class="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-700">
                         <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                     </button>
                 `;
@@ -491,77 +477,47 @@
             renderTree();
         }
 
-        function setViewMode(mode) {
-            currentViewMode = mode;
-            const btnH = document.getElementById('btn-view-hourglass');
-            const btnP = document.getElementById('btn-view-poster');
-            if (mode === 'hourglass') {
-                btnH.className = "px-3 py-1.5 rounded-md font-semibold transition-all bg-amber-500 text-slate-950 shadow";
-                btnP.className = "px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition-all";
-            } else {
-                btnP.className = "px-3 py-1.5 rounded-md font-semibold transition-all bg-amber-500 text-slate-950 shadow";
-                btnH.className = "px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition-all";
-            }
-            renderTree();
-            resetZoom();
-        }
-
-        // --- UNLIMITED RECURSIVE LAYOUT ENGINE ---
+        // --- TREE LAYOUT WITH DYNAMIC SPACING (NO OVERLAPS) ---
         function renderTree() {
-            const posterBg = document.getElementById('poster-bg');
             const linesGroup = document.getElementById('lines-group');
             const nodesGroup = document.getElementById('nodes-group');
 
-            posterBg.innerHTML = '';
             linesGroup.innerHTML = '';
             nodesGroup.innerHTML = '';
 
             if (!activePersonId || !persons[activePersonId]) return;
 
-            if (currentViewMode === 'hourglass') {
-                renderHourglassLayout(linesGroup, nodesGroup);
-            } else {
-                renderPosterLayout(posterBg, linesGroup, nodesGroup);
-            }
-        }
-
-        // Full Horizontal Hourglass Layout
-        function renderHourglassLayout(linesGroup, nodesGroup) {
             const root = persons[activePersonId];
             const nodes = [];
             const connections = [];
             const marriages = [];
 
-            // Center Root Node
+            // Add Root Person Node
             nodes.push({ id: root.id, person: root, x: 0, y: 0, isRoot: true });
 
             if (root.famc && families[root.famc]) {
                 const fam = families[root.famc];
                 
-                // Paternal Ancestor Subtree (Left Wing)
+                // Paternal Line (Left Branch)
                 if (fam.husband) {
-                    const fatherSubtree = buildAncestorSubtree(fam.husband);
-                    positionSubtree(fatherSubtree, -CARD_W - GAP_X, -CARD_H / 2 - GAP_Y / 2, 'left', nodes, connections, marriages);
-                    
-                    // Connection line to child
-                    connections.push({ x1: -GAP_X / 2, y1: 0, x2: 0, y2: 0 });
+                    const fatherSubtree = buildSubtreeNode(fam.husband);
+                    positionSubtreeDynamic(fatherSubtree, -CARD_W - GAP_X, 0, 'left', nodes, connections, marriages);
+                    connections.push({ x1: -GAP_X, y1: 0, x2: 0, y2: 0 });
                 }
 
-                // Maternal Ancestor Subtree (Right Wing)
+                // Maternal Line (Right Branch)
                 if (fam.wife) {
-                    const motherSubtree = buildAncestorSubtree(fam.wife);
-                    positionSubtree(motherSubtree, CARD_W + GAP_X, -CARD_H / 2 - GAP_Y / 2, 'right', nodes, connections, marriages);
-
-                    // Connection line to child
-                    connections.push({ x1: 0 + CARD_W, y1: 0, x2: CARD_W + GAP_X / 2, y2: 0 });
+                    const motherSubtree = buildSubtreeNode(fam.wife);
+                    positionSubtreeDynamic(motherSubtree, CARD_W + GAP_X, 0, 'right', nodes, connections, marriages);
+                    connections.push({ x1: CARD_W, y1: 0, x2: CARD_W + GAP_X, y2: 0 });
                 }
             }
 
-            drawTreeGraphics(nodes, connections, marriages, linesGroup, nodesGroup);
+            drawNordicGraphics(nodes, connections, marriages, linesGroup, nodesGroup);
         }
 
-        // Build Ancestor Subtree Recursively (No Generation Limit)
-        function buildAncestorSubtree(personId) {
+        // Recursive subtree height calculation
+        function buildSubtreeNode(personId) {
             if (!personId || !persons[personId]) return null;
             const p = persons[personId];
 
@@ -570,13 +526,13 @@
 
             if (p.famc && families[p.famc]) {
                 const fam = families[p.famc];
-                if (fam.husband) fatherSub = buildAncestorSubtree(fam.husband);
-                if (fam.wife) motherSub = buildAncestorSubtree(fam.wife);
+                if (fam.husband) fatherSub = buildSubtreeNode(fam.husband);
+                if (fam.wife) motherSub = buildSubtreeNode(fam.wife);
             }
 
-            const fatherHeight = fatherSub ? fatherSub.height : (CARD_H + GAP_Y);
-            const motherHeight = motherSub ? motherSub.height : (CARD_H + GAP_Y);
-            const totalHeight = Math.max(CARD_H * 2 + GAP_Y, fatherHeight + motherHeight);
+            const fatherHeight = fatherSub ? fatherSub.height : (CARD_H + BASE_GAP_Y);
+            const motherHeight = motherSub ? motherSub.height : (CARD_H + BASE_GAP_Y);
+            const totalHeight = Math.max(CARD_H * 2 + BASE_GAP_Y, fatherHeight + motherHeight + BASE_GAP_Y);
 
             return {
                 id: p.id,
@@ -587,18 +543,20 @@
             };
         }
 
-        // Position Subtree Nodes Recursively
-        function positionSubtree(treeNode, x, yCenter, direction, nodes, connections, marriages) {
+        // Position subtree recursively with dynamic vertical offsets
+        function positionSubtreeDynamic(treeNode, x, yCenter, direction, nodes, connections, marriages) {
             if (!treeNode) return;
 
             const isLeft = direction === 'left';
-            const husbandY = yCenter - (CARD_H / 2) - (GAP_Y / 4);
-            const wifeY = yCenter + (CARD_H / 2) + (GAP_Y / 4);
+            const fHeight = treeNode.fatherSub ? treeNode.fatherSub.height : (CARD_H + BASE_GAP_Y);
+            const mHeight = treeNode.motherSub ? treeNode.motherSub.height : (CARD_H + BASE_GAP_Y);
+
+            const husbandY = yCenter - (mHeight / 2) - (BASE_GAP_Y / 2);
+            const wifeY = yCenter + (fHeight / 2) + (BASE_GAP_Y / 2);
 
             let fatherId = treeNode.fatherSub ? treeNode.fatherSub.id : null;
             let motherId = treeNode.motherSub ? treeNode.motherSub.id : null;
 
-            // Add Couple Nodes
             if (fatherId && persons[fatherId]) {
                 nodes.push({ id: fatherId, person: persons[fatherId], x, y: husbandY });
             }
@@ -607,65 +565,63 @@
             }
 
             if (fatherId && motherId) {
-                // Vertical Marriage Connector
                 const midX = x + (CARD_W / 2);
                 marriages.push({ x: midX, y1: husbandY + CARD_H, y2: wifeY });
 
-                // Horizontal Connector to Child
-                const nextX = isLeft ? x - GAP_X : x + CARD_W + GAP_X;
+                const connX = isLeft ? x - (GAP_X / 2) : x + CARD_W + (GAP_X / 2);
                 connections.push({
                     x1: isLeft ? x : x + CARD_W,
                     y1: yCenter,
-                    x2: isLeft ? x - (GAP_X / 2) : x + CARD_W + (GAP_X / 2),
+                    x2: connX,
                     y2: yCenter
                 });
             }
 
-            // Recurse to Next Generations
             const nextX = isLeft ? x - CARD_W - GAP_X : x + CARD_W + GAP_X;
 
             if (treeNode.fatherSub) {
-                positionSubtree(treeNode.fatherSub, nextX, husbandY, direction, nodes, connections, marriages);
+                positionSubtreeDynamic(treeNode.fatherSub, nextX, husbandY, direction, nodes, connections, marriages);
             }
             if (treeNode.motherSub) {
-                positionSubtree(treeNode.motherSub, nextX, wifeY, direction, nodes, connections, marriages);
+                positionSubtreeDynamic(treeNode.motherSub, nextX, wifeY, direction, nodes, connections, marriages);
             }
         }
 
-        // Draw Nodes and Lines
-        function drawTreeGraphics(nodes, connections, marriages, linesGroup, nodesGroup) {
-            // Draw Marriages
+        // Draw Nordic Cards & Lines
+        function drawNordicGraphics(nodes, connections, marriages, linesGroup, nodesGroup) {
+            // Draw Vertical Dotted Marriage Bars
             marriages.forEach(m => {
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
                 line.setAttribute("x1", m.x);
                 line.setAttribute("y1", m.y1);
                 line.setAttribute("x2", m.x);
                 line.setAttribute("y2", m.y2);
-                line.setAttribute("stroke", "#f59e0b");
+                line.setAttribute("stroke", "#d97706");
                 line.setAttribute("stroke-width", "2");
+                line.setAttribute("stroke-dasharray", "4 3");
                 linesGroup.appendChild(line);
 
                 const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                 dot.setAttribute("cx", m.x);
                 dot.setAttribute("cy", (m.y1 + m.y2) / 2);
-                dot.setAttribute("r", "4");
-                dot.setAttribute("fill", "#f59e0b");
+                dot.setAttribute("r", "4.5");
+                dot.setAttribute("fill", "#0284c7");
                 linesGroup.appendChild(dot);
             });
 
-            // Draw Connections
+            // Draw Horizontal Connections
             connections.forEach(c => {
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 const midX = (c.x1 + c.x2) / 2;
                 const d = `M ${c.x1} ${c.y1} C ${midX} ${c.y1}, ${midX} ${c.y2}, ${c.x2} ${c.y2}`;
                 path.setAttribute("d", d);
                 path.setAttribute("fill", "none");
-                path.setAttribute("stroke", "#475569");
+                path.setAttribute("stroke", "#eab308");
                 path.setAttribute("stroke-width", "2");
                 linesGroup.appendChild(path);
             });
 
-            // Draw Cards
+            // Draw Nordic Cards
             nodes.forEach(n => {
                 const p = n.person;
                 const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -676,38 +632,38 @@
                 const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                 rect.setAttribute("width", CARD_W);
                 rect.setAttribute("height", CARD_H);
-                rect.setAttribute("rx", "10");
-                rect.setAttribute("fill", "#0f172a");
-                rect.setAttribute("stroke", n.isRoot ? "#f59e0b" : "#334155");
+                rect.setAttribute("rx", "12");
+                rect.setAttribute("fill", "#ffffff");
+                rect.setAttribute("stroke", n.isRoot ? "#d97706" : "#fbbf24");
                 rect.setAttribute("stroke-width", n.isRoot ? "2.5" : "1.5");
+                rect.setAttribute("class", "shadow-sm hover:shadow-md transition-all");
                 g.appendChild(rect);
 
-                // Gender Badge
+                // Gender Emblem Icon
                 const badge = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                 badge.setAttribute("cx", "20");
-                badge.setAttribute("cy", "24");
-                badge.setAttribute("r", "10");
-                badge.setAttribute("fill", p.sex === 'F' ? "#ec4899" : "#3b82f6");
-                badge.setAttribute("opacity", "0.2");
+                badge.setAttribute("cy", "22");
+                badge.setAttribute("r", "9");
+                badge.setAttribute("fill", p.sex === 'F' ? "#fce7f3" : "#e0f2fe");
                 g.appendChild(badge);
 
                 const badgeText = document.createElementNS("http://www.w3.org/2000/svg", "text");
                 badgeText.setAttribute("x", "20");
-                badgeText.setAttribute("y", "28");
+                badgeText.setAttribute("y", "25");
                 badgeText.setAttribute("text-anchor", "middle");
                 badgeText.setAttribute("font-size", "10");
                 badgeText.setAttribute("font-weight", "bold");
-                badgeText.setAttribute("fill", p.sex === 'F' ? "#f472b6" : "#60a5fa");
-                badgeText.textContent = p.sex === 'F' ? 'Ž' : 'M';
+                badgeText.setAttribute("fill", p.sex === 'F' ? "#ec4899" : "#0284c7");
+                badgeText.textContent = p.sex === 'F' ? '♀' : '♂';
                 g.appendChild(badgeText);
 
-                // Name
+                // Full Name
                 const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                nameText.setAttribute("x", "38");
-                nameText.setAttribute("y", "24");
+                nameText.setAttribute("x", "36");
+                nameText.setAttribute("y", "23");
                 nameText.setAttribute("font-size", "12");
                 nameText.setAttribute("font-weight", "700");
-                nameText.setAttribute("fill", n.isRoot ? "#fef3c7" : "#ffffff");
+                nameText.setAttribute("fill", "#0f172a");
                 
                 let fullName = `${p.givenName || ''} ${p.surname || ''}`;
                 if (fullName.length > 18) fullName = fullName.substring(0, 16) + '…';
@@ -715,26 +671,26 @@
                 g.appendChild(nameText);
 
                 // Maiden Name
-                let currentY = 42;
+                let currentY = 39;
                 if (p.sex === 'F' && p.maidenName) {
                     const mText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    mText.setAttribute("x", "38");
+                    mText.setAttribute("x", "36");
                     mText.setAttribute("y", currentY);
                     mText.setAttribute("font-size", "10");
-                    mText.setAttribute("fill", "#94a3b8");
+                    mText.setAttribute("fill", "#64748b");
                     mText.textContent = `r. ${p.maidenName}`;
                     g.appendChild(mText);
-                    currentY += 16;
+                    currentY += 15;
                 }
 
                 // Dates
                 const dates = [p.birthDate ? `* ${formatDisplayDate(p.birthDate)}` : '', p.deathDate ? `+ ${formatDisplayDate(p.deathDate)}` : ''].filter(Boolean).join(' ');
                 if (dates) {
                     const dateText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    dateText.setAttribute("x", "38");
+                    dateText.setAttribute("x", "36");
                     dateText.setAttribute("y", currentY);
                     dateText.setAttribute("font-size", "9");
-                    dateText.setAttribute("fill", "#64748b");
+                    dateText.setAttribute("fill", "#94a3b8");
                     dateText.textContent = dates.length > 22 ? dates.substring(0, 20) + '…' : dates;
                     g.appendChild(dateText);
                 }
@@ -743,34 +699,11 @@
             });
         }
 
-        // Royal Poster Layout
-        function renderPosterLayout(posterBg, linesGroup, nodesGroup) {
-            const root = persons[activePersonId];
-            const surname = (root.surname || 'RODINA').toUpperCase();
-
-            posterBg.innerHTML = `
-                <rect x="-200" y="-200" width="2400" height="1600" fill="#090d16" />
-                <rect x="40" y="40" width="1920" height="1120" fill="none" stroke="#d97706" stroke-width="2" opacity="0.4" />
-                <rect x="52" y="52" width="1896" height="1096" fill="none" stroke="#f59e0b" stroke-width="1" opacity="0.6" />
-                
-                <g transform="translate(1000, 120)">
-                    <circle cx="0" cy="0" r="24" fill="none" stroke="#f59e0b" stroke-width="1.5" opacity="0.8" />
-                    <path d="M0 -30 L5 -8 L26 0 L5 8 L0 30 L-5 8 L-26 0 L-5 -8 Z" fill="#f59e0b" opacity="0.85" />
-                </g>
-
-                <text x="1000" y="190" text-anchor="middle" font-family="Cinzel, serif" font-size="32" font-weight="700" fill="#fef3c7" letter-spacing="4">RODOVÝ STROM RODINY ${surname}</text>
-                <text x="1000" y="220" text-anchor="middle" font-family="Cinzel, serif" font-size="13" font-weight="500" fill="#f59e0b" letter-spacing="2" opacity="0.8">PŘÍMÁ LINIE PŘEDKŮ | TISKOVÁ EDICE</text>
-            `;
-
-            // Draw Standard Tree in Poster View
-            renderHourglassLayout(linesGroup, nodesGroup);
-        }
-
-        // Controls & Interactivity
+        // Navigation Pan Zoom
         function setupPanZoom() {
             const svg = document.getElementById('tree-svg');
             svg.addEventListener('mousedown', (e) => {
-                if (e.target.tagName === 'svg' || e.target.id === 'poster-bg' || e.target.id === 'lines-group') {
+                if (e.target.tagName === 'svg' || e.target.id === 'lines-group') {
                     isDragging = true;
                     startX = e.clientX - panX;
                     startY = e.clientY - panY;
@@ -802,11 +735,11 @@
             const wrapper = document.getElementById('canvas-wrapper');
             panX = wrapper.clientWidth / 2 - (CARD_W / 2);
             panY = wrapper.clientHeight / 2;
-            scale = 0.8;
+            scale = 0.85;
             updateViewportTransform();
         }
 
-        // Modal Form Controls
+        // Modal Controls
         function openEditModal(id) {
             const p = persons[id];
             if (!p) return;
@@ -965,7 +898,7 @@
             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
             const downloadLink = document.createElement("a");
             downloadLink.href = url;
-            downloadLink.download = "rodokmen_komplet.svg";
+            downloadLink.download = "rodokmen_nordic.svg";
             document.body.appendChild(downloadLink);
             downloadLink.click();
             document.body.removeChild(downloadLink);
