@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rodokmen Studio - Nordic Light</title>
+    <title>Rodokmen Studio - Finální Přesné Rozvržení</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
         
         body { font-family: 'Inter', sans-serif; }
+        .font-cinzel { font-family: 'Cinzel', serif; }
 
         .canvas-bg {
             background-color: #fafafa;
@@ -33,12 +34,23 @@
             </div>
             <div>
                 <h1 class="font-bold text-slate-900 text-lg leading-tight">Rodokmen Studio</h1>
-                <p class="text-xs text-slate-500">Čisté rozvržení s přesným párováním</p>
+                <p class="text-xs text-slate-500">Matematicky přesný generační strom</p>
             </div>
         </div>
 
-        <!-- Controls -->
+        <!-- Mode & Actions -->
         <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-1 bg-slate-100 p-1 rounded-lg text-xs">
+                <button id="btn-mode-tree" onclick="setAppMode('tree')" class="px-3 py-1.5 rounded-md font-semibold transition-all bg-white shadow-sm text-slate-900">
+                    Pracovní Strom
+                </button>
+                <button id="btn-mode-poster" onclick="setAppMode('poster')" class="px-3 py-1.5 rounded-md font-medium text-slate-600 hover:text-slate-900 transition-all">
+                    Zlatý Plakát (Tisk)
+                </button>
+            </div>
+
+            <div class="h-5 w-px bg-slate-200"></div>
+
             <label class="cursor-pointer bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium px-3.5 py-1.5 rounded-lg text-xs flex items-center space-x-2 transition-all shadow-sm">
                 <i data-lucide="upload" class="w-4 h-4 text-slate-500"></i>
                 <span>Načíst GEDCOM</span>
@@ -52,7 +64,7 @@
 
             <button onclick="exportSVG()" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-1.5 rounded-lg text-xs flex items-center space-x-2 transition-all shadow-md">
                 <i data-lucide="printer" class="w-4 h-4"></i>
-                <span>Export SVG pro tisk</span>
+                <span>Export SVG</span>
             </button>
         </div>
     </header>
@@ -87,6 +99,7 @@
         <main class="flex-1 relative overflow-hidden canvas-bg" id="canvas-wrapper">
             <svg id="tree-svg" class="w-full h-full absolute inset-0 cursor-grab active:cursor-grabbing">
                 <g id="viewport">
+                    <g id="poster-bg"></g>
                     <g id="lines-group"></g>
                     <g id="nodes-group"></g>
                 </g>
@@ -225,14 +238,15 @@
         </div>
     </div>
 
-    <!-- Application Engine Script -->
+    <!-- Application Script Engine -->
     <script>
         let persons = {};
         let families = {};
         let activePersonId = null;
+        let currentAppMode = 'tree'; // 'tree' or 'poster'
 
         // Pan Zoom State
-        let scale = 1;
+        let scale = 0.85;
         let panX = 0;
         let panY = 0;
         let isDragging = false;
@@ -241,10 +255,9 @@
         // Card Dimensions
         const CARD_W = 190;
         const CARD_H = 72;
-        const GAP_X = 80;
+        const GAP_X = 70;
         const BASE_GAP_Y = 16;
 
-        // Czech Month Mapping
         const CZECH_MONTHS = ["", "Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"];
         const GEDCOM_MONTHS = {
             "JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "MAY": 5, "JUN": 6,
@@ -309,7 +322,7 @@
             return parts.join(' ');
         }
 
-        // GEDCOM Parser Engine
+        // GEDCOM Parser
         function parseGedcom(text) {
             const lines = text.split(/\r?\n/);
             const newPersons = {};
@@ -477,47 +490,65 @@
             renderTree();
         }
 
-        // --- TREE LAYOUT WITH DYNAMIC SPACING (NO OVERLAPS) ---
+        function setAppMode(mode) {
+            currentAppMode = mode;
+            const btnT = document.getElementById('btn-mode-tree');
+            const btnP = document.getElementById('btn-mode-poster');
+            if (mode === 'tree') {
+                btnT.className = "px-3 py-1.5 rounded-md font-semibold transition-all bg-white shadow-sm text-slate-900";
+                btnP.className = "px-3 py-1.5 rounded-md font-medium text-slate-600 hover:text-slate-900 transition-all";
+            } else {
+                btnP.className = "px-3 py-1.5 rounded-md font-semibold transition-all bg-white shadow-sm text-slate-900";
+                btnT.className = "px-3 py-1.5 rounded-md font-medium text-slate-600 hover:text-slate-900 transition-all";
+            }
+            renderTree();
+            resetZoom();
+        }
+
+        // --- PRECISE ANHENTAFEL TREE LAYOUT (NO SKIPPING/MIXING) ---
         function renderTree() {
+            const posterBg = document.getElementById('poster-bg');
             const linesGroup = document.getElementById('lines-group');
             const nodesGroup = document.getElementById('nodes-group');
 
+            posterBg.innerHTML = '';
             linesGroup.innerHTML = '';
             nodesGroup.innerHTML = '';
 
             if (!activePersonId || !persons[activePersonId]) return;
+
+            if (currentAppMode === 'poster') {
+                renderPosterBackground(posterBg);
+            }
 
             const root = persons[activePersonId];
             const nodes = [];
             const connections = [];
             const marriages = [];
 
-            // Add Root Person Node
+            // Root Node
             nodes.push({ id: root.id, person: root, x: 0, y: 0, isRoot: true });
 
             if (root.famc && families[root.famc]) {
                 const fam = families[root.famc];
                 
-                // Paternal Line (Left Branch)
                 if (fam.husband) {
-                    const fatherSubtree = buildSubtreeNode(fam.husband);
-                    positionSubtreeDynamic(fatherSubtree, -CARD_W - GAP_X, 0, 'left', nodes, connections, marriages);
+                    const fatherSub = buildAhnentafelSubtree(fam.husband);
+                    renderBranch(fatherSub, -CARD_W - GAP_X, 0, 'left', nodes, connections, marriages);
                     connections.push({ x1: -GAP_X, y1: 0, x2: 0, y2: 0 });
                 }
 
-                // Maternal Line (Right Branch)
                 if (fam.wife) {
-                    const motherSubtree = buildSubtreeNode(fam.wife);
-                    positionSubtreeDynamic(motherSubtree, CARD_W + GAP_X, 0, 'right', nodes, connections, marriages);
+                    const motherSub = buildAhnentafelSubtree(fam.wife);
+                    renderBranch(motherSub, CARD_W + GAP_X, 0, 'right', nodes, connections, marriages);
                     connections.push({ x1: CARD_W, y1: 0, x2: CARD_W + GAP_X, y2: 0 });
                 }
             }
 
-            drawNordicGraphics(nodes, connections, marriages, linesGroup, nodesGroup);
+            drawGraphics(nodes, connections, marriages, linesGroup, nodesGroup);
         }
 
-        // Recursive subtree height calculation
-        function buildSubtreeNode(personId) {
+        function buildAhnentafelSubtree(personId) {
             if (!personId || !persons[personId]) return null;
             const p = persons[personId];
 
@@ -526,13 +557,13 @@
 
             if (p.famc && families[p.famc]) {
                 const fam = families[p.famc];
-                if (fam.husband) fatherSub = buildSubtreeNode(fam.husband);
-                if (fam.wife) motherSub = buildSubtreeNode(fam.wife);
+                if (fam.husband) fatherSub = buildAhnentafelSubtree(fam.husband);
+                if (fam.wife) motherSub = buildAhnentafelSubtree(fam.wife);
             }
 
-            const fatherHeight = fatherSub ? fatherSub.height : (CARD_H + BASE_GAP_Y);
-            const motherHeight = motherSub ? motherSub.height : (CARD_H + BASE_GAP_Y);
-            const totalHeight = Math.max(CARD_H * 2 + BASE_GAP_Y, fatherHeight + motherHeight + BASE_GAP_Y);
+            const fH = fatherSub ? fatherSub.height : (CARD_H + BASE_GAP_Y);
+            const mH = motherSub ? motherSub.height : (CARD_H + BASE_GAP_Y);
+            const totalHeight = Math.max(CARD_H * 2 + BASE_GAP_Y, fH + mH + BASE_GAP_Y);
 
             return {
                 id: p.id,
@@ -543,16 +574,15 @@
             };
         }
 
-        // Position subtree recursively with dynamic vertical offsets
-        function positionSubtreeDynamic(treeNode, x, yCenter, direction, nodes, connections, marriages) {
+        function renderBranch(treeNode, x, yCenter, direction, nodes, connections, marriages) {
             if (!treeNode) return;
 
             const isLeft = direction === 'left';
-            const fHeight = treeNode.fatherSub ? treeNode.fatherSub.height : (CARD_H + BASE_GAP_Y);
-            const mHeight = treeNode.motherSub ? treeNode.motherSub.height : (CARD_H + BASE_GAP_Y);
+            const fH = treeNode.fatherSub ? treeNode.fatherSub.height : (CARD_H + BASE_GAP_Y);
+            const mH = treeNode.motherSub ? treeNode.motherSub.height : (CARD_H + BASE_GAP_Y);
 
-            const husbandY = yCenter - (mHeight / 2) - (BASE_GAP_Y / 2);
-            const wifeY = yCenter + (fHeight / 2) + (BASE_GAP_Y / 2);
+            const husbandY = yCenter - (mH / 2) - (BASE_GAP_Y / 2);
+            const wifeY = yCenter + (fH / 2) + (BASE_GAP_Y / 2);
 
             let fatherId = treeNode.fatherSub ? treeNode.fatherSub.id : null;
             let motherId = treeNode.motherSub ? treeNode.motherSub.id : null;
@@ -580,16 +610,14 @@
             const nextX = isLeft ? x - CARD_W - GAP_X : x + CARD_W + GAP_X;
 
             if (treeNode.fatherSub) {
-                positionSubtreeDynamic(treeNode.fatherSub, nextX, husbandY, direction, nodes, connections, marriages);
+                renderBranch(treeNode.fatherSub, nextX, husbandY, direction, nodes, connections, marriages);
             }
             if (treeNode.motherSub) {
-                positionSubtreeDynamic(treeNode.motherSub, nextX, wifeY, direction, nodes, connections, marriages);
+                renderBranch(treeNode.motherSub, nextX, wifeY, direction, nodes, connections, marriages);
             }
         }
 
-        // Draw Nordic Cards & Lines
-        function drawNordicGraphics(nodes, connections, marriages, linesGroup, nodesGroup) {
-            // Draw Vertical Dotted Marriage Bars
+        function drawGraphics(nodes, connections, marriages, linesGroup, nodesGroup) {
             marriages.forEach(m => {
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
                 line.setAttribute("x1", m.x);
@@ -609,7 +637,6 @@
                 linesGroup.appendChild(dot);
             });
 
-            // Draw Horizontal Connections
             connections.forEach(c => {
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 const midX = (c.x1 + c.x2) / 2;
@@ -621,7 +648,6 @@
                 linesGroup.appendChild(path);
             });
 
-            // Draw Nordic Cards
             nodes.forEach(n => {
                 const p = n.person;
                 const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -639,7 +665,6 @@
                 rect.setAttribute("class", "shadow-sm hover:shadow-md transition-all");
                 g.appendChild(rect);
 
-                // Gender Emblem Icon
                 const badge = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                 badge.setAttribute("cx", "20");
                 badge.setAttribute("cy", "22");
@@ -657,7 +682,6 @@
                 badgeText.textContent = p.sex === 'F' ? '♀' : '♂';
                 g.appendChild(badgeText);
 
-                // Full Name
                 const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
                 nameText.setAttribute("x", "36");
                 nameText.setAttribute("y", "23");
@@ -670,7 +694,6 @@
                 nameText.textContent = fullName;
                 g.appendChild(nameText);
 
-                // Maiden Name
                 let currentY = 39;
                 if (p.sex === 'F' && p.maidenName) {
                     const mText = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -683,7 +706,6 @@
                     currentY += 15;
                 }
 
-                // Dates
                 const dates = [p.birthDate ? `* ${formatDisplayDate(p.birthDate)}` : '', p.deathDate ? `+ ${formatDisplayDate(p.deathDate)}` : ''].filter(Boolean).join(' ');
                 if (dates) {
                     const dateText = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -699,11 +721,30 @@
             });
         }
 
+        function renderPosterBackground(posterBg) {
+            const root = persons[activePersonId];
+            const surname = (root.surname || 'RODINA').toUpperCase();
+
+            posterBg.innerHTML = `
+                <rect x="-1500" y="-1500" width="4000" height="3000" fill="#090d16" />
+                <rect x="-800" y="-700" width="1600" height="1200" fill="none" stroke="#d97706" stroke-width="3" opacity="0.4" />
+                <rect x="-785" y="-685" width="1570" height="1170" fill="none" stroke="#f59e0b" stroke-width="1.5" opacity="0.6" />
+                
+                <g transform="translate(0, -580)">
+                    <circle cx="0" cy="0" r="26" fill="none" stroke="#f59e0b" stroke-width="1.5" opacity="0.8" />
+                    <path d="M0 -32 L5 -8 L28 0 L5 8 L0 32 L-5 8 L-28 0 L-5 -8 Z" fill="#f59e0b" opacity="0.85" />
+                </g>
+
+                <text x="0" y="-510" text-anchor="middle" font-family="Cinzel, serif" font-size="32" font-weight="700" fill="#fef3c7" letter-spacing="4">RODOVÝ STROM RODINY ${surname}</text>
+                <text x="0" y="-480" text-anchor="middle" font-family="Cinzel, serif" font-size="13" font-weight="500" fill="#f59e0b" letter-spacing="2" opacity="0.8">PŘÍMÁ LINIE PŘEDKŮ | TISKOVÁ EDICE</text>
+            `;
+        }
+
         // Navigation Pan Zoom
         function setupPanZoom() {
             const svg = document.getElementById('tree-svg');
             svg.addEventListener('mousedown', (e) => {
-                if (e.target.tagName === 'svg' || e.target.id === 'lines-group') {
+                if (e.target.tagName === 'svg' || e.target.id === 'poster-bg' || e.target.id === 'lines-group') {
                     isDragging = true;
                     startX = e.clientX - panX;
                     startY = e.clientY - panY;
@@ -733,7 +774,7 @@
         function zoomOut() { scale = Math.max(0.15, scale / 1.2); updateViewportTransform(); }
         function resetZoom() {
             const wrapper = document.getElementById('canvas-wrapper');
-            panX = wrapper.clientWidth / 2 - (CARD_W / 2);
+            panX = wrapper.clientWidth / 2;
             panY = wrapper.clientHeight / 2;
             scale = 0.85;
             updateViewportTransform();
@@ -898,7 +939,7 @@
             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
             const downloadLink = document.createElement("a");
             downloadLink.href = url;
-            downloadLink.download = "rodokmen_nordic.svg";
+            downloadLink.download = "rodokmen_final.svg";
             document.body.appendChild(downloadLink);
             downloadLink.click();
             document.body.removeChild(downloadLink);
