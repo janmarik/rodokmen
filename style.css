@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+.font-cinzel {
+    font-family: 'Cinzel', serif;
+}
+
+/* Modré pozadí s jemnou zlatavou mřížkou */
+.navy-grid-pattern {
+    background-color: #090d16;
+    background-image: radial-gradient(rgba(217, 119, 6, 0.15) 1.5px, transparent 1.5px);
+    background-size: 32px 32px;
+}
+
+/* Karta osoby na plátně */
+.person-node-card {
+    cursor: pointer;
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.person-node-card:hover {
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.4));
+}
+
+/* Scrollbary */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #090d16;
+}
+::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #d97706;
+}
