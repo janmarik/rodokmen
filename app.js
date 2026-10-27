@@ -145,22 +145,51 @@ function parseGedcom(text) {
     return { persons: newPersons, families: newFamilies };
 }
 
+// Robustní načtení souboru s podporou českého kódování (UTF-8 i Windows-1250/ANSI)
 function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
+    
+    // Nejprve zkusíme načíst jako ArrayBuffer pro detekci kódování
     reader.onload = function(e) {
-        const parsed = parseGedcom(e.target.result);
-        persons = parsed.persons;
-        families = parsed.families;
-        const keys = Object.keys(persons);
-        activePersonId = keys.length > 0 ? keys[0] : null;
-        updateEmptyState();
-        renderPersonList();
-        renderTree();
-        resetZoom();
+        const buffer = e.target.result;
+        let text = "";
+
+        // Pokus o dekódování v UTF-8
+        try {
+            const decoderUTF8 = new TextDecoder('utf-8', { fatal: true });
+            text = decoderUTF8.decode(buffer);
+        } catch (err) {
+            // Pokud UTF-8 selže, použijeme české Windows-1250 (běžné u starých GEDCOM souborů)
+            const decoderCP1250 = new TextDecoder('windows-1250');
+            text = decoderCP1250.decode(buffer);
+        }
+
+        try {
+            const parsed = parseGedcom(text);
+            persons = parsed.persons;
+            families = parsed.families;
+            const keys = Object.keys(persons);
+            
+            if (keys.length === 0) {
+                alert("Soubor se sice načetl, ale nebyla v něm nalezena žádná data osob (INDI). Zkontrolujte formát GEDCOM.");
+                return;
+            }
+
+            activePersonId = keys[0];
+            updateEmptyState();
+            renderPersonList();
+            renderTree();
+            resetZoom();
+        } catch (parseErr) {
+            console.error("Chyba při parsování GEDCOM:", parseErr);
+            alert("Při čtení GEDCOM souboru došlo k chybě. Soubor je pravděpodobně poškozený.");
+        }
     };
-    reader.readAsText(file);
+
+    reader.readAsArrayBuffer(file);
 }
 
 function exportGedcom() {
@@ -477,23 +506,96 @@ function resetZoom() {
     updateViewportTransform();
 }
 
-// Pomocné funkce pro datumy a modální okna
-function parseGedcomDate(str) {
-    if (!str) return { day: '', month: '', year: '' };
-    const parts = str.trim().split(/\s+/);
-    let day = '', month = '', year = '';
+// Opravený a bezpečný GEDCOM Parser
+function parseGedcom(text) {
+    const lines = text.split(/\r?\n/);
+    const newPersons = {};
+    const newFamilies = {};
+    let currentRecord = null;
+    let currentType = null;
 
-    parts.forEach(p => {
-        const num = parseInt(p);
-        const upper = p.toUpperCase();
-        if (GEDCOM_MONTHS[upper]) month = GEDCOM_MONTHS[upper];
-        else if (!isNaN(num) && num > 19) year = num;
-        else if (!isNaN(num) && num <= 31) day = num;
+    for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        const match = line.match(/^(\d+)\s+(@[^@]+@|[^\s]+)\s*(.*)$/);
+        if (!match) continue;
+
+        const level = parseInt(match[1]);
+        const tagOrId = match[2];
+        const value = match[3];
+
+        if (level === 0) {
+            if (value === 'INDI') {
+                currentType = 'INDI';
+                currentRecord = { id: tagOrId, givenName: '', surname: '', maidenName: '', sex: 'M', birthDate: '', deathDate: '', famc: null, fams: [] };
+                newPersons[tagOrId] = currentRecord;
+            } else if (value === 'FAM') {
+                currentType = 'FAM';
+                currentRecord = { id: tagOrId, husband: null, wife: null, children: [] };
+                newFamilies[tagOrId] = currentRecord;
+            } else {
+                currentType = null; 
+                currentRecord = null;
+            }
+        } else if (currentRecord && level === 1) {
+            if (currentType === 'INDI') {
+                if (tagOrId === 'NAME') {
+                    const nameMatch = value.match(/(.*?)\/(.*?)\//);
+                    if (nameMatch) {
+                        currentRecord.givenName = nameMatch[1].trim();
+                        currentRecord.surname = nameMatch[2].trim();
+                    } else {
+                        currentRecord.givenName = value.trim();
+                    }
+                } else if (tagOrId === 'SEX') {
+                    currentRecord.sex = value.trim().toUpperCase();
+                } else if (tagOrId === 'FAMC') {
+                    currentRecord.famc = value.trim();
+                } else if (tagOrId === 'FAMS') {
+                    currentRecord.fams.push(value.trim());
+                } else if (tagOrId === '_MAIDEN' || tagOrId === '_MARNM' || tagOrId === 'SURN') {
+                    if (tagOrId === '_MAIDEN' || tagOrId === '_MARNM') {
+                        currentRecord.maidenName = value.trim();
+                    }
+                }
+            } else if (currentType === 'FAM') {
+                if (tagOrId === 'HUSB') currentRecord.husband = value.trim();
+                if (tagOrId === 'WIFE') currentRecord.wife = value.trim();
+                if (tagOrId === 'CHIL') currentRecord.children.push(value.trim());
+            }
+        }
+    }
+
+    // Druhý průchod pro data narození a úmrtí (BIRT / DEAT)
+    let activeRecord = null;
+    let lastTag = '';
+
+    for (let line of lines) {
+        line = line.trim();
+        const match = line.match(/^(\d+)\s+([^\s@]+|@[^@]+@)\s*(.*)$/);
+        if (!match) continue;
+        const level = parseInt(match[1]);
+        const tag = match[2];
+        const val = match[3];
+
+        if (level === 0) {
+            activeRecord = newPersons[tag] || newFamilies[tag] || null;
+        } else if (level === 1) {
+            lastTag = tag;
+        } else if (level === 2 && tag === 'DATE' && activeRecord) {
+            if (lastTag === 'BIRT') activeRecord.birthDate = val;
+            if (lastTag === 'DEAT') activeRecord.deathDate = val;
+        }
+    }
+
+    Object.values(newPersons).forEach(p => {
+        if (p.sex === 'F' && !p.maidenName && p.surname) {
+            p.maidenName = p.surname;
+        }
     });
 
-    return { day, month, year };
+    return { persons: newPersons, families: newFamilies };
 }
-
 function buildGedcomDate(day, month, year) {
     const gedMonths = ["", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
     const parts = [];
