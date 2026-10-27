@@ -10,11 +10,10 @@ let panY = 0;
 let isDragging = false;
 let startX = 0, startY = 0;
 
-// Geometrické konstanty karet
+// Geometrické konstanty mřížky
 const CARD_W = 190;
 const CARD_H = 70;
-const STEP_X = 280; // Vzdálenost sloupců generací
-const PAIR_GAP = 20; // Svislá mezera mezi manželi
+const STEP_X = 260; // Pevná vzdálenost sloupců generací
 
 const CZECH_MONTHS = ["", "Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"];
 const GEDCOM_MONTHS = {
@@ -69,7 +68,7 @@ function setupEventListeners() {
     document.getElementById('btn-add-spouse').addEventListener('click', addSpouse);
 }
 
-// Robustní načtení souboru s podporou kódování UTF-8 i Windows-1250
+// Načtení souboru (UTF-8 / Windows-1250)
 function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -111,7 +110,6 @@ function handleFileUpload(event) {
     reader.readAsArrayBuffer(file);
 }
 
-// GEDCOM Parser
 function parseGedcom(text) {
     const lines = text.split(/\r?\n/);
     const newPersons = {};
@@ -207,7 +205,7 @@ function exportGedcom() {
     });
     ged += "0 TRLR\n";
 
-    const blob = new Blob([ged], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([ged], { type: 'text/plain;charset=utf-8' };
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'rodokmen.ged';
@@ -262,7 +260,7 @@ function setActivePerson(id) {
     renderTree();
 }
 
-// --- VYKRESLENÍ STROMU ---
+// --- ABSOLUTNĚ STABILNÍ MŘÍŽKOVÝ VÝPOČET (AHNENTAFEL) ---
 function renderTree() {
     const posterHeaderGroup = document.getElementById('poster-header-group');
     const linesGroup = document.getElementById('lines-group');
@@ -281,84 +279,63 @@ function renderTree() {
     const connections = [];
     const marriages = [];
 
+    // 1. Kořenová osoba na středu [0, 0]
     nodes.push({ id: root.id, person: root, x: -CARD_W / 2, y: -CARD_H / 2, isRoot: true });
 
+    // Získáme rodiče kořene
     if (root.famc && families[root.famc]) {
         const fam = families[root.famc];
         
-        if (fam.husband) {
-            const fatherTree = buildTreeHierarchy(fam.husband);
-            layoutWing(fatherTree, -STEP_X, 0, 'left', nodes, connections, marriages);
-            connections.push({ x1: -STEP_X + CARD_W, y1: 0, x2: -CARD_W / 2, y2: 0 });
+        // Generace 1: Otec (vlevo) a Matka (vpravo)
+        let father = fam.husband ? persons[fam.husband] : null;
+        let mother = fam.wife ? persons[fam.wife] : null;
+
+        if (father) {
+            nodes.push({ id: father.id, person: father, x: -STEP_X - CARD_W / 2, y: -CARD_H - 20 });
+            connections.push({ x1: -STEP_X + CARD_W / 2, y1: -CARD_H / 2 - 20, x2: -CARD_W / 2, y2: -CARD_H / 2 });
+            
+            // Generace 2 pro otce (dědeček a babička z otcovy strany)
+            renderAncestorPair(father, -2, -STEP_X * 2, -CARD_H - 120, nodes, connections, marriages);
         }
 
-        if (fam.wife) {
-            const motherTree = buildTreeHierarchy(fam.wife);
-            layoutWing(motherTree, STEP_X, 0, 'right', nodes, connections, marriages);
-            connections.push({ x1: CARD_W / 2, y1: 0, x2: STEP_X, y2: 0 });
+        if (mother) {
+            nodes.push({ id: mother.id, person: mother, x: STEP_X - CARD_W / 2, y: 20 });
+            connections.push({ x1: CARD_W / 2, y1: 0, x2: STEP_X - CARD_W / 2, y2: 20 });
+
+            // Generace 2 pro matku (dědeček a babička z matčiny strany)
+            renderAncestorPair(mother, 2, STEP_X * 2, CARD_H + 50, nodes, connections, marriages);
         }
     }
 
     drawGraphics(nodes, connections, marriages, linesGroup, nodesGroup);
 }
 
-function buildTreeHierarchy(personId) {
-    if (!personId || !persons[personId]) return null;
-    const p = persons[personId];
+// Pomocná funkce pro bezpečné vygenerování prarodičů bez přeskakování
+function renderAncestorPair(parentPerson, genLevel, posX, centerY, nodes, connections, marriages) {
+    if (!parentPerson.famc || !families[parentPerson.famc]) return;
+    const fam = families[parentPerson.famc];
 
-    let fatherNode = null;
-    let motherNode = null;
+    const grandFather = fam.husband ? persons[fam.husband] : null;
+    const grandMother = fam.wife ? persons[fam.wife] : null;
 
-    if (p.famc && families[p.famc]) {
-        const fam = families[p.famc];
-        if (fam.husband) fatherNode = buildTreeHierarchy(fam.husband);
-        if (fam.wife) motherNode = buildTreeHierarchy(fam.wife);
+    const gF_Y = centerY - 60;
+    const gM_Y = centerY + 60;
+
+    if (grandFather) {
+        nodes.push({ id: grandFather.id, person: grandFather, x: posX - CARD_W / 2, y: gF_Y });
+    }
+    if (grandMother) {
+        nodes.push({ id: grandMother.id, person: grandMother, x: posX - CARD_W / 2, y: gM_Y });
     }
 
-    const fH = fatherNode ? fatherNode.height : (CARD_H + PAIR_GAP);
-    const mH = motherNode ? motherNode.height : (CARD_H + PAIR_GAP);
-    const height = Math.max(CARD_H * 2 + PAIR_GAP, fH + mH);
-
-    return { id: p.id, person: p, fatherNode, motherNode, height };
-}
-
-function layoutWing(node, currentX, yCenter, dir, nodes, connections, marriages) {
-    if (!node) return;
-
-    const isLeft = dir === 'left';
-    const cardX = isLeft ? currentX - CARD_W : currentX;
-
-    const fH = node.fatherNode ? node.fatherNode.height : (CARD_H + PAIR_GAP);
-    const mH = node.motherNode ? node.motherNode.height : (CARD_H + PAIR_GAP);
-
-    const husbandY = yCenter - (mH / 2) - (PAIR_GAP / 2) - (CARD_H / 2);
-    const wifeY = yCenter + (fH / 2) + (PAIR_GAP / 2) - (CARD_H / 2);
-
-    let fatherId = node.fatherNode ? node.fatherNode.id : null;
-    let motherId = node.motherNode ? node.motherNode.id : null;
-
-    if (fatherId && persons[fatherId]) nodes.push({ id: fatherId, person: persons[fatherId], x: cardX, y: husbandY });
-    if (motherId && persons[motherId]) nodes.push({ id: motherId, person: persons[motherId], x: cardX, y: wifeY });
-
-    if (fatherId && motherId) {
-        const midX = cardX + (CARD_W / 2);
-        marriages.push({ x: midX, y1: husbandY + CARD_H, y2: wifeY });
-
-        const childConnX = isLeft ? cardX + CARD_W : cardX;
-        connections.push({ x1: midX, y1: (husbandY + CARD_H + wifeY) / 2, x2: childConnX, y2: yCenter });
-    }
-
-    const nextX = isLeft ? currentX - STEP_X : currentX + STEP_X;
-
-    if (node.fatherNode) {
-        const nextYCenter = husbandY + (CARD_H / 2);
-        layoutWing(node.fatherNode, nextX, nextYCenter, dir, nodes, connections, marriages);
-        connections.push({ x1: isLeft ? nextX : nextX - CARD_W, y1: nextYCenter, x2: cardX, y2: husbandY + (CARD_H / 2) });
-    }
-    if (node.motherNode) {
-        const nextYCenter = wifeY + (CARD_H / 2);
-        layoutWing(node.motherNode, nextX, nextYCenter, dir, nodes, connections, marriages);
-        connections.push({ x1: isLeft ? nextX : nextX - CARD_W, y1: nextYCenter, x2: cardX, y2: wifeY + (CARD_H / 2) });
+    if (grandFather && grandMother) {
+        // Svislá svorka manželského páru prarodičů
+        marriages.push({ x: posX, y1: gF_Y + CARD_H, y2: gM_Y });
+        
+        // Spojka k rodiči
+        const parentTargetX = genLevel < 0 ? posX + CARD_W / 2 : posX - CARD_W / 2;
+        const parentTargetY = parentPerson === persons[fam.husband] ? centerY - 30 : centerY + 30;
+        connections.push({ x1: posX, y1: (gF_Y + gM_Y + CARD_H) / 2, x2: parentTargetX, y2: parentTargetY });
     }
 }
 
@@ -464,7 +441,7 @@ function renderRoyalPosterHeader(posterGroup, root) {
     `;
 }
 
-// --- CELOPLOŠNÉ PAN & ZOOM ---
+// Celoplošný Pan & Zoom
 function setupPanZoom() {
     const wrapper = document.getElementById('canvas-wrapper');
     const svg = document.getElementById('tree-svg');
