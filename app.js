@@ -4,19 +4,18 @@ let families = {};
 let activePersonId = null;
 
 // Stav pro Zoom a Pan
-let scale = 0.85;
+let scale = 0.75;
 let panX = 0;
 let panY = 0;
 let isDragging = false;
 let startX = 0, startY = 0;
 
-// Konstanta rozměrů karet
-const CARD_W = 200;
-const CARD_H = 76;
-const GAP_X = 100;
-const BASE_GAP_Y = 24;
+// Geometrické konstanty karet
+const CARD_W = 190;
+const CARD_H = 70;
+const STEP_X = 280; // Vzdálenost sloupců generací
+const PAIR_GAP = 20; // Svislá mezera mezi manželi
 
-// České měsíce a obousměrný převod z GEDCOMu
 const CZECH_MONTHS = ["", "Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"];
 const GEDCOM_MONTHS = {
     "JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "MAY": 5, "JUN": 6,
@@ -29,6 +28,7 @@ window.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     setupPanZoom();
     updateEmptyState();
+    resetZoom();
 });
 
 function initDateDropdowns() {
@@ -67,6 +67,48 @@ function setupEventListeners() {
     document.getElementById('btn-add-father').addEventListener('click', () => addRelative('father'));
     document.getElementById('btn-add-mother').addEventListener('click', () => addRelative('mother'));
     document.getElementById('btn-add-spouse').addEventListener('click', addSpouse);
+}
+
+// Robustní načtení souboru s podporou kódování UTF-8 i Windows-1250
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const buffer = e.target.result;
+        let text = "";
+
+        try {
+            const decoderUTF8 = new TextDecoder('utf-8', { fatal: true });
+            text = decoderUTF8.decode(buffer);
+        } catch (err) {
+            const decoderCP1250 = new TextDecoder('windows-1250');
+            text = decoderCP1250.decode(buffer);
+        }
+
+        try {
+            const parsed = parseGedcom(text);
+            persons = parsed.persons;
+            families = parsed.families;
+            const keys = Object.keys(persons);
+            
+            if (keys.length === 0) {
+                alert("Soubor se načetl, ale neobsahuje žádné osoby.");
+                return;
+            }
+
+            activePersonId = keys[0];
+            updateEmptyState();
+            renderPersonList();
+            renderTree();
+            resetZoom();
+        } catch (parseErr) {
+            console.error("Chyba při parsování GEDCOM:", parseErr);
+            alert("Při čtení GEDCOM souboru došlo k chybě.");
+        }
+    };
+    reader.readAsArrayBuffer(file);
 }
 
 // GEDCOM Parser
@@ -121,20 +163,21 @@ function parseGedcom(text) {
         }
     }
 
+    let activeRecord = null;
     let lastTag = '';
     for (let line of lines) {
         line = line.trim();
-        const match = line.match(/^(\d+)\s+([^\s]+)\s*(.*)$/);
+        const match = line.match(/^(\d+)\s+([^\s@]+|@[^@]+@)\s*(.*)$/);
         if (!match) continue;
         const level = parseInt(match[1]);
         const tag = match[2];
         const val = match[3];
 
-        if (level === 0) currentRecord = newPersons[tag] || newFamilies[tag] || null;
+        if (level === 0) activeRecord = newPersons[tag] || newFamilies[tag] || null;
         else if (level === 1) lastTag = tag;
-        else if (level === 2 && tag === 'DATE' && currentRecord && currentRecord.givenName !== undefined) {
-            if (lastTag === 'BIRT') currentRecord.birthDate = val;
-            if (lastTag === 'DEAT') currentRecord.deathDate = val;
+        else if (level === 2 && tag === 'DATE' && activeRecord) {
+            if (lastTag === 'BIRT') activeRecord.birthDate = val;
+            if (lastTag === 'DEAT') activeRecord.deathDate = val;
         }
     }
 
@@ -143,53 +186,6 @@ function parseGedcom(text) {
     });
 
     return { persons: newPersons, families: newFamilies };
-}
-
-// Robustní načtení souboru s podporou českého kódování (UTF-8 i Windows-1250/ANSI)
-function handleFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    
-    // Nejprve zkusíme načíst jako ArrayBuffer pro detekci kódování
-    reader.onload = function(e) {
-        const buffer = e.target.result;
-        let text = "";
-
-        // Pokus o dekódování v UTF-8
-        try {
-            const decoderUTF8 = new TextDecoder('utf-8', { fatal: true });
-            text = decoderUTF8.decode(buffer);
-        } catch (err) {
-            // Pokud UTF-8 selže, použijeme české Windows-1250 (běžné u starých GEDCOM souborů)
-            const decoderCP1250 = new TextDecoder('windows-1250');
-            text = decoderCP1250.decode(buffer);
-        }
-
-        try {
-            const parsed = parseGedcom(text);
-            persons = parsed.persons;
-            families = parsed.families;
-            const keys = Object.keys(persons);
-            
-            if (keys.length === 0) {
-                alert("Soubor se sice načetl, ale nebyla v něm nalezena žádná data osob (INDI). Zkontrolujte formát GEDCOM.");
-                return;
-            }
-
-            activePersonId = keys[0];
-            updateEmptyState();
-            renderPersonList();
-            renderTree();
-            resetZoom();
-        } catch (parseErr) {
-            console.error("Chyba při parsování GEDCOM:", parseErr);
-            alert("Při čtení GEDCOM souboru došlo k chybě. Soubor je pravděpodobně poškozený.");
-        }
-    };
-
-    reader.readAsArrayBuffer(file);
 }
 
 function exportGedcom() {
@@ -266,7 +262,7 @@ function setActivePerson(id) {
     renderTree();
 }
 
-// --- VYKRESLENÍ LEŽATÝCH HODIN ---
+// --- VYKRESLENÍ STROMU ---
 function renderTree() {
     const posterHeaderGroup = document.getElementById('poster-header-group');
     const linesGroup = document.getElementById('lines-group');
@@ -278,89 +274,95 @@ function renderTree() {
 
     if (!activePersonId || !persons[activePersonId]) return;
 
-    renderRoyalPosterHeader(posterHeaderGroup);
-
     const root = persons[activePersonId];
+    renderRoyalPosterHeader(posterHeaderGroup, root);
+
     const nodes = [];
     const connections = [];
     const marriages = [];
 
-    // Středová osoba
-    nodes.push({ id: root.id, person: root, x: 0, y: 0, isRoot: true });
+    nodes.push({ id: root.id, person: root, x: -CARD_W / 2, y: -CARD_H / 2, isRoot: true });
 
     if (root.famc && families[root.famc]) {
         const fam = families[root.famc];
         
-        // Otcovská linie vlevo
         if (fam.husband) {
-            const fatherSub = buildSubtree(fam.husband);
-            renderBranch(fatherSub, -CARD_W - GAP_X, 0, 'left', nodes, connections, marriages);
-            connections.push({ x1: -GAP_X, y1: 0, x2: 0, y2: 0 });
+            const fatherTree = buildTreeHierarchy(fam.husband);
+            layoutWing(fatherTree, -STEP_X, 0, 'left', nodes, connections, marriages);
+            connections.push({ x1: -STEP_X + CARD_W, y1: 0, x2: -CARD_W / 2, y2: 0 });
         }
 
-        // Mateřská linie vpravo
         if (fam.wife) {
-            const motherSub = buildSubtree(fam.wife);
-            renderBranch(motherSub, CARD_W + GAP_X, 0, 'right', nodes, connections, marriages);
-            connections.push({ x1: CARD_W, y1: 0, x2: CARD_W + GAP_X, y2: 0 });
+            const motherTree = buildTreeHierarchy(fam.wife);
+            layoutWing(motherTree, STEP_X, 0, 'right', nodes, connections, marriages);
+            connections.push({ x1: CARD_W / 2, y1: 0, x2: STEP_X, y2: 0 });
         }
     }
 
     drawGraphics(nodes, connections, marriages, linesGroup, nodesGroup);
 }
 
-function buildSubtree(personId) {
+function buildTreeHierarchy(personId) {
     if (!personId || !persons[personId]) return null;
     const p = persons[personId];
 
-    let fatherSub = null;
-    let motherSub = null;
+    let fatherNode = null;
+    let motherNode = null;
 
     if (p.famc && families[p.famc]) {
         const fam = families[p.famc];
-        if (fam.husband) fatherSub = buildSubtree(fam.husband);
-        if (fam.wife) motherSub = buildSubtree(fam.wife);
+        if (fam.husband) fatherNode = buildTreeHierarchy(fam.husband);
+        if (fam.wife) motherNode = buildTreeHierarchy(fam.wife);
     }
 
-    const fH = fatherSub ? fatherSub.height : (CARD_H + BASE_GAP_Y);
-    const mH = motherSub ? motherSub.height : (CARD_H + BASE_GAP_Y);
-    const totalHeight = Math.max(CARD_H * 2 + BASE_GAP_Y, fH + mH + BASE_GAP_Y);
+    const fH = fatherNode ? fatherNode.height : (CARD_H + PAIR_GAP);
+    const mH = motherNode ? motherNode.height : (CARD_H + PAIR_GAP);
+    const height = Math.max(CARD_H * 2 + PAIR_GAP, fH + mH);
 
-    return { id: p.id, person: p, fatherSub, motherSub, height: totalHeight };
+    return { id: p.id, person: p, fatherNode, motherNode, height };
 }
 
-function renderBranch(treeNode, x, yCenter, direction, nodes, connections, marriages) {
-    if (!treeNode) return;
+function layoutWing(node, currentX, yCenter, dir, nodes, connections, marriages) {
+    if (!node) return;
 
-    const isLeft = direction === 'left';
-    const fH = treeNode.fatherSub ? treeNode.fatherSub.height : (CARD_H + BASE_GAP_Y);
-    const mH = treeNode.motherSub ? treeNode.motherSub.height : (CARD_H + BASE_GAP_Y);
+    const isLeft = dir === 'left';
+    const cardX = isLeft ? currentX - CARD_W : currentX;
 
-    const husbandY = yCenter - (mH / 2) - (BASE_GAP_Y / 2);
-    const wifeY = yCenter + (fH / 2) + (BASE_GAP_Y / 2);
+    const fH = node.fatherNode ? node.fatherNode.height : (CARD_H + PAIR_GAP);
+    const mH = node.motherNode ? node.motherNode.height : (CARD_H + PAIR_GAP);
 
-    let fatherId = treeNode.fatherSub ? treeNode.fatherSub.id : null;
-    let motherId = treeNode.motherSub ? treeNode.motherSub.id : null;
+    const husbandY = yCenter - (mH / 2) - (PAIR_GAP / 2) - (CARD_H / 2);
+    const wifeY = yCenter + (fH / 2) + (PAIR_GAP / 2) - (CARD_H / 2);
 
-    if (fatherId && persons[fatherId]) nodes.push({ id: fatherId, person: persons[fatherId], x, y: husbandY });
-    if (motherId && persons[motherId]) nodes.push({ id: motherId, person: persons[motherId], x, y: wifeY });
+    let fatherId = node.fatherNode ? node.fatherNode.id : null;
+    let motherId = node.motherNode ? node.motherNode.id : null;
+
+    if (fatherId && persons[fatherId]) nodes.push({ id: fatherId, person: persons[fatherId], x: cardX, y: husbandY });
+    if (motherId && persons[motherId]) nodes.push({ id: motherId, person: persons[motherId], x: cardX, y: wifeY });
 
     if (fatherId && motherId) {
-        const midX = x + (CARD_W / 2);
+        const midX = cardX + (CARD_W / 2);
         marriages.push({ x: midX, y1: husbandY + CARD_H, y2: wifeY });
 
-        const connX = isLeft ? x - (GAP_X / 2) : x + CARD_W + (GAP_X / 2);
-        connections.push({ x1: isLeft ? x : x + CARD_W, y1: yCenter, x2: connX, y2: yCenter });
+        const childConnX = isLeft ? cardX + CARD_W : cardX;
+        connections.push({ x1: midX, y1: (husbandY + CARD_H + wifeY) / 2, x2: childConnX, y2: yCenter });
     }
 
-    const nextX = isLeft ? x - CARD_W - GAP_X : x + CARD_W + GAP_X;
+    const nextX = isLeft ? currentX - STEP_X : currentX + STEP_X;
 
-    if (treeNode.fatherSub) renderBranch(treeNode.fatherSub, nextX, husbandY, direction, nodes, connections, marriages);
-    if (treeNode.motherSub) renderBranch(treeNode.motherSub, nextX, wifeY, direction, nodes, connections, marriages);
+    if (node.fatherNode) {
+        const nextYCenter = husbandY + (CARD_H / 2);
+        layoutWing(node.fatherNode, nextX, nextYCenter, dir, nodes, connections, marriages);
+        connections.push({ x1: isLeft ? nextX : nextX - CARD_W, y1: nextYCenter, x2: cardX, y2: husbandY + (CARD_H / 2) });
+    }
+    if (node.motherNode) {
+        const nextYCenter = wifeY + (CARD_H / 2);
+        layoutWing(node.motherNode, nextX, nextYCenter, dir, nodes, connections, marriages);
+        connections.push({ x1: isLeft ? nextX : nextX - CARD_W, y1: nextYCenter, x2: cardX, y2: wifeY + (CARD_H / 2) });
+    }
 }
 
 function drawGraphics(nodes, connections, marriages, linesGroup, nodesGroup) {
-    // Svislé tečkované svorky pro manžele
     marriages.forEach(m => {
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
         line.setAttribute("x1", m.x); line.setAttribute("y1", m.y1);
@@ -375,7 +377,6 @@ function drawGraphics(nodes, connections, marriages, linesGroup, nodesGroup) {
         linesGroup.appendChild(dot);
     });
 
-    // Vodorovné větvící čáry
     connections.forEach(c => {
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         const midX = (c.x1 + c.x2) / 2;
@@ -386,7 +387,6 @@ function drawGraphics(nodes, connections, marriages, linesGroup, nodesGroup) {
         linesGroup.appendChild(path);
     });
 
-    // Kartičky osob (Zlatá & Modrá)
     nodes.forEach(n => {
         const p = n.person;
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -446,156 +446,102 @@ function drawGraphics(nodes, connections, marriages, linesGroup, nodesGroup) {
     });
 }
 
-function renderRoyalPosterHeader(posterGroup) {
-    const root = persons[activePersonId];
+function renderRoyalPosterHeader(posterGroup, root) {
     const surname = (root ? root.surname || 'RODINA' : 'RODINA').toUpperCase();
 
     posterGroup.innerHTML = `
-        <rect x="-2500" y="-2500" width="6000" height="6000" fill="#090d16" />
-        <rect x="-1000" y="-750" width="2000" height="1400" fill="none" stroke="#d97706" stroke-width="2" opacity="0.3" />
-        <rect x="-985" y="-735" width="1970" height="1370" fill="none" stroke="#f59e0b" stroke-width="1" opacity="0.5" />
+        <rect x="-3500" y="-3500" width="7000" height="7000" fill="#090d16" />
+        <rect x="-1600" y="-950" width="3200" height="1900" fill="none" stroke="#d97706" stroke-width="2" opacity="0.3" />
+        <rect x="-1585" y="-935" width="3170" height="1870" fill="none" stroke="#f59e0b" stroke-width="1" opacity="0.5" />
         
-        <g transform="translate(0, -620)">
+        <g transform="translate(0, -820)">
             <circle cx="0" cy="0" r="26" fill="none" stroke="#f59e0b" stroke-width="1.5" opacity="0.8" />
             <path d="M0 -32 L5 -8 L28 0 L5 8 L0 32 L-5 8 L-28 0 L-5 -8 Z" fill="#f59e0b" opacity="0.85" />
             <circle cx="0" cy="0" r="3" fill="#090d16" />
+            <text x="0" y="48" text-anchor="middle" font-family="Cinzel, serif" font-size="30" font-weight="700" fill="#fef3c7" letter-spacing="4">RODOVÝ STROM RODINY ${surname}</text>
+            <text x="0" y="72" text-anchor="middle" font-family="Cinzel, serif" font-size="12" font-weight="500" fill="#f59e0b" letter-spacing="2" opacity="0.8">PŘÍMÁ LINIE PŘEDKŮ | KRÁLOVSKÁ EDICE</text>
         </g>
-
-        <text x="0" y="-550" text-anchor="middle" font-family="Cinzel, serif" font-size="32" font-weight="700" fill="#fef3c7" letter-spacing="4">RODOVÝ STROM RODINY ${surname}</text>
-        <text x="0" y="-520" text-anchor="middle" font-family="Cinzel, serif" font-size="13" font-weight="500" fill="#f59e0b" letter-spacing="2" opacity="0.8">PŘÍMÁ LINIE PŘEDKŮ | KRÁLOVSKÁ EDICE</text>
     `;
 }
 
-// Interaktivita: Zoom & Posun plátna
+// --- CELOPLOŠNÉ PAN & ZOOM ---
 function setupPanZoom() {
+    const wrapper = document.getElementById('canvas-wrapper');
     const svg = document.getElementById('tree-svg');
+
     svg.addEventListener('mousedown', (e) => {
-        if (e.target.tagName === 'svg' || e.target.id === 'poster-header-group' || e.target.id === 'lines-group') {
-            isDragging = true;
-            startX = e.clientX - panX;
-            startY = e.clientY - panY;
-        }
+        isDragging = true;
+        startX = e.clientX - panX;
+        startY = e.clientY - panY;
     });
+
     window.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            panX = e.clientX - startX;
-            panY = e.clientY - startY;
-            updateViewportTransform();
-        }
-    });
-    window.addEventListener('mouseup', () => { isDragging = false; });
-    svg.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
-        scale = Math.min(Math.max(0.15, scale * zoomFactor), 3);
+        if (!isDragging) return;
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
         updateViewportTransform();
     });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    wrapper.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.12 : 0.88;
+        const newScale = Math.min(Math.max(0.1, scale * zoomFactor), 3);
+
+        const rect = wrapper.getBoundingClientRect();
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        panX = centerX - (centerX - panX) * (newScale / scale);
+        panY = centerY - (centerY - panY) * (newScale / scale);
+        scale = newScale;
+
+        updateViewportTransform();
+    }, { passive: false });
 }
 
 function updateViewportTransform() {
     document.getElementById('viewport').setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
 }
 
-function zoomIn() { scale = Math.min(3, scale * 1.2); updateViewportTransform(); }
-function zoomOut() { scale = Math.max(0.15, scale / 1.2); updateViewportTransform(); }
-function resetZoom() {
-    const wrapper = document.getElementById('canvas-wrapper');
-    panX = wrapper.clientWidth / 2;
-    panY = wrapper.clientHeight / 2;
-    scale = 0.8;
+function zoomIn() {
+    scale = Math.min(3, scale * 1.25);
     updateViewportTransform();
 }
 
-// Opravený a bezpečný GEDCOM Parser
-function parseGedcom(text) {
-    const lines = text.split(/\r?\n/);
-    const newPersons = {};
-    const newFamilies = {};
-    let currentRecord = null;
-    let currentType = null;
+function zoomOut() {
+    scale = Math.max(0.1, scale / 1.25);
+    updateViewportTransform();
+}
 
-    for (let line of lines) {
-        line = line.trim();
-        if (!line) continue;
-        const match = line.match(/^(\d+)\s+(@[^@]+@|[^\s]+)\s*(.*)$/);
-        if (!match) continue;
+function resetZoom() {
+    const wrapper = document.getElementById('canvas-wrapper');
+    scale = 0.75;
+    panX = wrapper.clientWidth / 2;
+    panY = wrapper.clientHeight / 2 + 50;
+    updateViewportTransform();
+}
 
-        const level = parseInt(match[1]);
-        const tagOrId = match[2];
-        const value = match[3];
+// Datumy a modální okna
+function parseGedcomDate(str) {
+    if (!str) return { day: '', month: '', year: '' };
+    const parts = str.trim().split(/\s+/);
+    let day = '', month = '', year = '';
 
-        if (level === 0) {
-            if (value === 'INDI') {
-                currentType = 'INDI';
-                currentRecord = { id: tagOrId, givenName: '', surname: '', maidenName: '', sex: 'M', birthDate: '', deathDate: '', famc: null, fams: [] };
-                newPersons[tagOrId] = currentRecord;
-            } else if (value === 'FAM') {
-                currentType = 'FAM';
-                currentRecord = { id: tagOrId, husband: null, wife: null, children: [] };
-                newFamilies[tagOrId] = currentRecord;
-            } else {
-                currentType = null; 
-                currentRecord = null;
-            }
-        } else if (currentRecord && level === 1) {
-            if (currentType === 'INDI') {
-                if (tagOrId === 'NAME') {
-                    const nameMatch = value.match(/(.*?)\/(.*?)\//);
-                    if (nameMatch) {
-                        currentRecord.givenName = nameMatch[1].trim();
-                        currentRecord.surname = nameMatch[2].trim();
-                    } else {
-                        currentRecord.givenName = value.trim();
-                    }
-                } else if (tagOrId === 'SEX') {
-                    currentRecord.sex = value.trim().toUpperCase();
-                } else if (tagOrId === 'FAMC') {
-                    currentRecord.famc = value.trim();
-                } else if (tagOrId === 'FAMS') {
-                    currentRecord.fams.push(value.trim());
-                } else if (tagOrId === '_MAIDEN' || tagOrId === '_MARNM' || tagOrId === 'SURN') {
-                    if (tagOrId === '_MAIDEN' || tagOrId === '_MARNM') {
-                        currentRecord.maidenName = value.trim();
-                    }
-                }
-            } else if (currentType === 'FAM') {
-                if (tagOrId === 'HUSB') currentRecord.husband = value.trim();
-                if (tagOrId === 'WIFE') currentRecord.wife = value.trim();
-                if (tagOrId === 'CHIL') currentRecord.children.push(value.trim());
-            }
-        }
-    }
-
-    // Druhý průchod pro data narození a úmrtí (BIRT / DEAT)
-    let activeRecord = null;
-    let lastTag = '';
-
-    for (let line of lines) {
-        line = line.trim();
-        const match = line.match(/^(\d+)\s+([^\s@]+|@[^@]+@)\s*(.*)$/);
-        if (!match) continue;
-        const level = parseInt(match[1]);
-        const tag = match[2];
-        const val = match[3];
-
-        if (level === 0) {
-            activeRecord = newPersons[tag] || newFamilies[tag] || null;
-        } else if (level === 1) {
-            lastTag = tag;
-        } else if (level === 2 && tag === 'DATE' && activeRecord) {
-            if (lastTag === 'BIRT') activeRecord.birthDate = val;
-            if (lastTag === 'DEAT') activeRecord.deathDate = val;
-        }
-    }
-
-    Object.values(newPersons).forEach(p => {
-        if (p.sex === 'F' && !p.maidenName && p.surname) {
-            p.maidenName = p.surname;
-        }
+    parts.forEach(p => {
+        const num = parseInt(p);
+        const upper = p.toUpperCase();
+        if (GEDCOM_MONTHS[upper]) month = GEDCOM_MONTHS[upper];
+        else if (!isNaN(num) && num > 19) year = num;
+        else if (!isNaN(num) && num <= 31) day = num;
     });
 
-    return { persons: newPersons, families: newFamilies };
+    return { day, month, year };
 }
+
 function buildGedcomDate(day, month, year) {
     const gedMonths = ["", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
     const parts = [];
