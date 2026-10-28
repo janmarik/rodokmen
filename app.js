@@ -4,7 +4,7 @@ let families = {};
 let activePersonId = null;
 
 // Stav pro Zoom a Pan
-let scale = 0.75;
+let scale = 0.5;
 let panX = 0;
 let panY = 0;
 let isDragging = false;
@@ -13,7 +13,6 @@ let startX = 0, startY = 0;
 // Geometrické konstanty mřížky
 const CARD_W = 190;
 const CARD_H = 70;
-const STEP_X = 260; // Pevná vzdálenost sloupců generací
 
 const CZECH_MONTHS = ["", "Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"];
 const GEDCOM_MONTHS = {
@@ -68,7 +67,7 @@ function setupEventListeners() {
     document.getElementById('btn-add-spouse').addEventListener('click', addSpouse);
 }
 
-// Načtení souboru (UTF-8 / Windows-1250)
+// Načtení souboru s podporou kódování UTF-8 i Windows-1250
 function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -97,7 +96,7 @@ function handleFileUpload(event) {
                 return;
             }
 
-            activePersonId = keys[0];
+            activePersonId = keys.includes('@I500001@') ? '@I500001@' : keys[0];
             updateEmptyState();
             renderPersonList();
             renderTree();
@@ -116,6 +115,7 @@ function parseGedcom(text) {
     const newFamilies = {};
     let currentRecord = null;
     let currentType = null;
+    let activeDateTag = null;
 
     for (let line of lines) {
         line = line.trim();
@@ -128,60 +128,55 @@ function parseGedcom(text) {
         const value = match[3];
 
         if (level === 0) {
-            if (value === 'INDI') {
+            activeDateTag = null;
+            if (tagOrId.startsWith('@') && value === 'INDI') {
                 currentType = 'INDI';
-                currentRecord = { id: tagOrId, givenName: '', surname: '', maidenName: '', sex: 'M', birthDate: '', deathDate: '', famc: null, fams: [] };
+                currentRecord = { id: tagOrId, givenName: '', surname: '', marriedName: '', sex: 'M', birthDate: '', deathDate: '', famc: null, fams: [] };
                 newPersons[tagOrId] = currentRecord;
-            } else if (value === 'FAM') {
+            } else if (tagOrId.startsWith('@') && value === 'FAM') {
                 currentType = 'FAM';
                 currentRecord = { id: tagOrId, husband: null, wife: null, children: [] };
                 newFamilies[tagOrId] = currentRecord;
             } else {
-                currentType = null; currentRecord = null;
+                currentType = null; 
+                currentRecord = null;
             }
-        } else if (currentRecord && level === 1) {
-            if (currentType === 'INDI') {
-                if (tagOrId === 'NAME') {
-                    const nameMatch = value.match(/(.*?)\/(.*?)\//);
-                    if (nameMatch) {
-                        currentRecord.givenName = nameMatch[1].trim();
-                        currentRecord.surname = nameMatch[2].trim();
-                    } else {
-                        currentRecord.givenName = value.trim();
+        } else if (currentRecord) {
+            if (level === 1) {
+                activeDateTag = tagOrId;
+                if (currentType === 'INDI') {
+                    if (tagOrId === 'NAME') {
+                        const nameMatch = value.match(/(.*?)\/(.*?)\//);
+                        if (nameMatch) {
+                            currentRecord.givenName = nameMatch[1].trim();
+                            currentRecord.surname = nameMatch[2].trim();
+                        } else {
+                            currentRecord.givenName = value.trim();
+                        }
+                    } else if (tagOrId === 'SEX') {
+                        currentRecord.sex = value.trim().toUpperCase();
+                    } else if (tagOrId === 'FAMC') {
+                        currentRecord.famc = value.trim();
+                    } else if (tagOrId === 'FAMS') {
+                        currentRecord.fams.push(value.trim());
+                    } else if (tagOrId === '_MARNM') {
+                        currentRecord.marriedName = value.trim();
                     }
-                } else if (tagOrId === 'SEX') currentRecord.sex = value.trim().toUpperCase();
-                else if (tagOrId === 'FAMC') currentRecord.famc = value.trim();
-                else if (tagOrId === 'FAMS') currentRecord.fams.push(value.trim());
-                else if (tagOrId === '_MAIDEN' || tagOrId === '_MARNM') currentRecord.maidenName = value.trim();
-            } else if (currentType === 'FAM') {
-                if (tagOrId === 'HUSB') currentRecord.husband = value.trim();
-                if (tagOrId === 'WIFE') currentRecord.wife = value.trim();
-                if (tagOrId === 'CHIL') currentRecord.children.push(value.trim());
+                } else if (currentType === 'FAM') {
+                    if (tagOrId === 'HUSB') currentRecord.husband = value.trim();
+                    if (tagOrId === 'WIFE') currentRecord.wife = value.trim();
+                    if (tagOrId === 'CHIL') currentRecord.children.push(value.trim());
+                }
+            } else if (level === 2) {
+                if (tagOrId === 'DATE') {
+                    if (activeDateTag === 'BIRT') currentRecord.birthDate = value.trim();
+                    if (activeDateTag === 'DEAT') currentRecord.deathDate = value.trim();
+                } else if (tagOrId === '_MARNM' && currentType === 'INDI') {
+                    currentRecord.marriedName = value.trim();
+                }
             }
         }
     }
-
-    let activeRecord = null;
-    let lastTag = '';
-    for (let line of lines) {
-        line = line.trim();
-        const match = line.match(/^(\d+)\s+([^\s@]+|@[^@]+@)\s*(.*)$/);
-        if (!match) continue;
-        const level = parseInt(match[1]);
-        const tag = match[2];
-        const val = match[3];
-
-        if (level === 0) activeRecord = newPersons[tag] || newFamilies[tag] || null;
-        else if (level === 1) lastTag = tag;
-        else if (level === 2 && tag === 'DATE' && activeRecord) {
-            if (lastTag === 'BIRT') activeRecord.birthDate = val;
-            if (lastTag === 'DEAT') activeRecord.deathDate = val;
-        }
-    }
-
-    Object.values(newPersons).forEach(p => {
-        if (p.sex === 'F' && !p.maidenName && p.surname) p.maidenName = p.surname;
-    });
 
     return { persons: newPersons, families: newFamilies };
 }
@@ -191,7 +186,7 @@ function exportGedcom() {
     Object.values(persons).forEach(p => {
         ged += `0 ${p.id} INDI\n1 NAME ${p.givenName} /${p.surname}/\n`;
         if (p.sex) ged += `1 SEX ${p.sex}\n`;
-        if (p.maidenName) ged += `1 _MAIDEN ${p.maidenName}\n`;
+        if (p.marriedName) ged += `1 _MARNM ${p.marriedName}\n`;
         if (p.birthDate) ged += `1 BIRT\n2 DATE ${p.birthDate}\n`;
         if (p.deathDate) ged += `1 DEAT\n2 DATE ${p.deathDate}\n`;
         if (p.famc) ged += `1 FAMC ${p.famc}\n`;
@@ -205,7 +200,7 @@ function exportGedcom() {
     });
     ged += "0 TRLR\n";
 
-    const blob = new Blob([ged], { type: 'text/plain;charset=utf-8' };
+    const blob = new Blob([ged], { type: 'text/plain;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'rodokmen.ged';
@@ -235,13 +230,13 @@ function renderPersonList() {
         }`;
         
         const dates = [formatDisplayDate(p.birthDate), formatDisplayDate(p.deathDate)].filter(Boolean).join(' - ') || 'Bez datumu';
-        const maiden = (p.sex === 'F' && p.maidenName) ? ` (${p.maidenName})` : '';
+        const married = (p.sex === 'F' && p.marriedName) ? ` (${p.marriedName})` : '';
 
         div.innerHTML = `
             <div class="overflow-hidden pr-2 flex-1" onclick="setActivePerson('${p.id}')">
                 <div class="font-medium text-slate-200 text-xs truncate">
                     ${p.givenName || 'Neznámé'} <span class="font-bold text-white">${p.surname || ''}</span>
-                    <span class="text-xs text-amber-500/70 font-normal">${maiden}</span>
+                    <span class="text-xs text-amber-500/70 font-normal">${married}</span>
                 </div>
                 <div class="text-[10px] text-slate-500 truncate">${dates}</div>
             </div>
@@ -260,7 +255,7 @@ function setActivePerson(id) {
     renderTree();
 }
 
-// --- ABSOLUTNĚ STABILNÍ MŘÍŽKOVÝ VÝPOČET (AHNENTAFEL) ---
+// --- OPTIMALIZOVANÝ MŘÍŽKOVÝ VÝPOČET BEZ PŘEKRÝVÁNÍ ---
 function renderTree() {
     const posterHeaderGroup = document.getElementById('poster-header-group');
     const linesGroup = document.getElementById('lines-group');
@@ -278,86 +273,101 @@ function renderTree() {
     const nodes = [];
     const connections = [];
     const marriages = [];
+    
+    const maxGen = 4;
+    const genNodes = {};
+    for (let g = 0; g <= maxGen; g++) genNodes[g] = [];
 
-    // 1. Kořenová osoba na středu [0, 0]
-    nodes.push({ id: root.id, person: root, x: -CARD_W / 2, y: -CARD_H / 2, isRoot: true });
-
-    // Získáme rodiče kořene
-    if (root.famc && families[root.famc]) {
-        const fam = families[root.famc];
+    function collectAncestors(personId, gen, index) {
+        if (gen > maxGen || !personId || !persons[personId]) return;
+        const person = persons[personId];
         
-        // Generace 1: Otec (vlevo) a Matka (vpravo)
-        let father = fam.husband ? persons[fam.husband] : null;
-        let mother = fam.wife ? persons[fam.wife] : null;
+        genNodes[gen].push({
+            id: personId,
+            person: person,
+            gen: gen,
+            index: index,
+            isRoot: (gen === 0)
+        });
 
-        if (father) {
-            nodes.push({ id: father.id, person: father, x: -STEP_X - CARD_W / 2, y: -CARD_H - 20 });
-            connections.push({ x1: -STEP_X + CARD_W / 2, y1: -CARD_H / 2 - 20, x2: -CARD_W / 2, y2: -CARD_H / 2 });
-            
-            // Generace 2 pro otce (dědeček a babička z otcovy strany)
-            renderAncestorPair(father, -2, -STEP_X * 2, -CARD_H - 120, nodes, connections, marriages);
-        }
-
-        if (mother) {
-            nodes.push({ id: mother.id, person: mother, x: STEP_X - CARD_W / 2, y: 20 });
-            connections.push({ x1: CARD_W / 2, y1: 0, x2: STEP_X - CARD_W / 2, y2: 20 });
-
-            // Generace 2 pro matku (dědeček a babička z matčiny strany)
-            renderAncestorPair(mother, 2, STEP_X * 2, CARD_H + 50, nodes, connections, marriages);
+        if (gen < maxGen && person.famc && families[person.famc]) {
+            const fam = families[person.famc];
+            if (fam.husband) collectAncestors(fam.husband, gen + 1, index * 2);
+            if (fam.wife) collectAncestors(fam.wife, gen + 1, index * 2 + 1);
         }
     }
+
+    collectAncestors(activePersonId, 0, 0);
+
+    const nodePositions = {};
+
+    for (let gen = 0; gen <= maxGen; gen++) {
+        const list = genNodes[gen];
+        if (list.length === 0) continue;
+        
+        const y = -gen * 160;
+        const totalInGen = Math.pow(2, gen);
+        
+        // Zajištění velkorysé šířky pro každou generaci, aby se karty nikdy nepřekrývaly
+        const spacing = Math.max(240, 2600 / Math.max(1, totalInGen));
+        const totalSpan = (totalInGen - 1) * spacing;
+        const startX = -totalSpan / 2;
+
+        list.forEach(item => {
+            const x = startX + item.index * spacing;
+            nodePositions[item.id] = { x, y, person: item.person, isRoot: item.isRoot };
+            nodes.push({ id: item.id, person: item.person, x: x - CARD_W / 2, y: y - CARD_H / 2, isRoot: item.isRoot });
+        });
+    }
+
+    nodes.forEach(n => {
+        const p = n.person;
+        if (p.famc && families[p.famc]) {
+            const fam = families[p.famc];
+            const fatherId = fam.husband;
+            const motherId = fam.wife;
+            
+            const childPos = nodePositions[n.id];
+            if (!childPos) return;
+
+            let fPos = fatherId ? nodePositions[fatherId] : null;
+            let mPos = motherId ? nodePositions[motherId] : null;
+
+            if (fPos) {
+                connections.push({ x1: fPos.x, y1: fPos.y + CARD_H/2, x2: childPos.x - 30, y2: childPos.y - CARD_H/2 });
+            }
+            if (mPos) {
+                connections.push({ x1: mPos.x, y1: mPos.y + CARD_H/2, x2: childPos.x + 30, y2: childPos.y - CARD_H/2 });
+            }
+            if (fPos && mPos) {
+                marriages.push({ x1: fPos.x, x2: mPos.x, y: fPos.y });
+            }
+        }
+    });
 
     drawGraphics(nodes, connections, marriages, linesGroup, nodesGroup);
-}
-
-// Pomocná funkce pro bezpečné vygenerování prarodičů bez přeskakování
-function renderAncestorPair(parentPerson, genLevel, posX, centerY, nodes, connections, marriages) {
-    if (!parentPerson.famc || !families[parentPerson.famc]) return;
-    const fam = families[parentPerson.famc];
-
-    const grandFather = fam.husband ? persons[fam.husband] : null;
-    const grandMother = fam.wife ? persons[fam.wife] : null;
-
-    const gF_Y = centerY - 60;
-    const gM_Y = centerY + 60;
-
-    if (grandFather) {
-        nodes.push({ id: grandFather.id, person: grandFather, x: posX - CARD_W / 2, y: gF_Y });
-    }
-    if (grandMother) {
-        nodes.push({ id: grandMother.id, person: grandMother, x: posX - CARD_W / 2, y: gM_Y });
-    }
-
-    if (grandFather && grandMother) {
-        // Svislá svorka manželského páru prarodičů
-        marriages.push({ x: posX, y1: gF_Y + CARD_H, y2: gM_Y });
-        
-        // Spojka k rodiči
-        const parentTargetX = genLevel < 0 ? posX + CARD_W / 2 : posX - CARD_W / 2;
-        const parentTargetY = parentPerson === persons[fam.husband] ? centerY - 30 : centerY + 30;
-        connections.push({ x1: posX, y1: (gF_Y + gM_Y + CARD_H) / 2, x2: parentTargetX, y2: parentTargetY });
-    }
 }
 
 function drawGraphics(nodes, connections, marriages, linesGroup, nodesGroup) {
     marriages.forEach(m => {
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", m.x); line.setAttribute("y1", m.y1);
-        line.setAttribute("x2", m.x); line.setAttribute("y2", m.y2);
+        line.setAttribute("x1", m.x1); line.setAttribute("y1", m.y + CARD_H / 2);
+        line.setAttribute("x2", m.x2); line.setAttribute("y2", m.y + CARD_H / 2);
         line.setAttribute("stroke", "#d97706"); line.setAttribute("stroke-width", "2");
         line.setAttribute("stroke-dasharray", "4 3");
         linesGroup.appendChild(line);
 
+        const midX = (m.x1 + m.x2) / 2;
         const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        dot.setAttribute("cx", m.x); dot.setAttribute("cy", (m.y1 + m.y2) / 2);
-        dot.setAttribute("r", "4.5"); dot.setAttribute("fill", "#f59e0b");
+        dot.setAttribute("cx", midX); dot.setAttribute("cy", m.y + CARD_H / 2);
+        dot.setAttribute("r", "4"); dot.setAttribute("fill", "#f59e0b");
         linesGroup.appendChild(dot);
     });
 
     connections.forEach(c => {
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        const midX = (c.x1 + c.x2) / 2;
-        const d = `M ${c.x1} ${c.y1} C ${midX} ${c.y1}, ${midX} ${c.y2}, ${c.x2} ${c.y2}`;
+        const midY = (c.y1 + c.y2) / 2;
+        const d = `M ${c.x1} ${c.y1} C ${c.x1} ${midY}, ${c.x2} ${midY}, ${c.x2} ${c.y2}`;
         path.setAttribute("d", d); path.setAttribute("fill", "none");
         path.setAttribute("stroke", "#d97706"); path.setAttribute("stroke-width", "2");
         path.setAttribute("opacity", "0.85");
@@ -401,11 +411,11 @@ function drawGraphics(nodes, connections, marriages, linesGroup, nodesGroup) {
         g.appendChild(nameText);
 
         let currentY = 42;
-        if (p.sex === 'F' && p.maidenName) {
+        if (p.sex === 'F' && p.marriedName) {
             const mText = document.createElementNS("http://www.w3.org/2000/svg", "text");
             mText.setAttribute("x", "40"); mText.setAttribute("y", currentY);
             mText.setAttribute("font-size", "10"); mText.setAttribute("fill", "#f59e0b");
-            mText.textContent = `rodná: ${p.maidenName}`;
+            mText.textContent = `po svatbě: ${p.marriedName}`;
             g.appendChild(mText);
             currentY += 16;
         }
@@ -427,16 +437,16 @@ function renderRoyalPosterHeader(posterGroup, root) {
     const surname = (root ? root.surname || 'RODINA' : 'RODINA').toUpperCase();
 
     posterGroup.innerHTML = `
-        <rect x="-3500" y="-3500" width="7000" height="7000" fill="#090d16" />
-        <rect x="-1600" y="-950" width="3200" height="1900" fill="none" stroke="#d97706" stroke-width="2" opacity="0.3" />
-        <rect x="-1585" y="-935" width="3170" height="1870" fill="none" stroke="#f59e0b" stroke-width="1" opacity="0.5" />
+        <rect x="-6000" y="-4500" width="12000" height="9000" fill="#090d16" />
+        <rect x="-4200" y="-1300" width="8400" height="2300" fill="none" stroke="#d97706" stroke-width="2" opacity="0.3" />
+        <rect x="-4185" y="-1285" width="8370" height="2270" fill="none" stroke="#f59e0b" stroke-width="1" opacity="0.5" />
         
-        <g transform="translate(0, -820)">
+        <g transform="translate(0, -1120)">
             <circle cx="0" cy="0" r="26" fill="none" stroke="#f59e0b" stroke-width="1.5" opacity="0.8" />
             <path d="M0 -32 L5 -8 L28 0 L5 8 L0 32 L-5 8 L-28 0 L-5 -8 Z" fill="#f59e0b" opacity="0.85" />
             <circle cx="0" cy="0" r="3" fill="#090d16" />
             <text x="0" y="48" text-anchor="middle" font-family="Cinzel, serif" font-size="30" font-weight="700" fill="#fef3c7" letter-spacing="4">RODOVÝ STROM RODINY ${surname}</text>
-            <text x="0" y="72" text-anchor="middle" font-family="Cinzel, serif" font-size="12" font-weight="500" fill="#f59e0b" letter-spacing="2" opacity="0.8">PŘÍMÁ LINIE PŘEDKŮ | KRÁLOVSKÁ EDICE</text>
+            <text x="0" y="72" text-anchor="middle" font-family="Cinzel, serif" font-size="12" font-weight="500" fill="#f59e0b" letter-spacing="2" opacity="0.8">KOMPLETNÍ PŘEHLED PŘEDKŮ | KRÁLOVSKÁ EDICE</text>
         </g>
     `;
 }
@@ -496,9 +506,9 @@ function zoomOut() {
 
 function resetZoom() {
     const wrapper = document.getElementById('canvas-wrapper');
-    scale = 0.75;
+    scale = 0.35;
     panX = wrapper.clientWidth / 2;
-    panY = wrapper.clientHeight / 2 + 50;
+    panY = wrapper.clientHeight / 2 + 150;
     updateViewportTransform();
 }
 
@@ -546,7 +556,7 @@ function openEditModal(id) {
     document.getElementById('edit-givenName').value = p.givenName || '';
     document.getElementById('edit-surname').value = p.surname || '';
     document.getElementById('edit-sex').value = p.sex || 'M';
-    document.getElementById('edit-maidenName').value = p.maidenName || '';
+    document.getElementById('edit-maidenName').value = p.marriedName || '';
 
     const bDate = parseGedcomDate(p.birthDate);
     document.getElementById('edit-birthDay').value = bDate.day || '';
@@ -585,7 +595,7 @@ function savePersonModal() {
     persons[id].givenName = document.getElementById('edit-givenName').value;
     persons[id].surname = document.getElementById('edit-surname').value;
     persons[id].sex = document.getElementById('edit-sex').value;
-    persons[id].maidenName = document.getElementById('edit-maidenName').value;
+    persons[id].marriedName = document.getElementById('edit-maidenName').value;
 
     const bDay = document.getElementById('edit-birthDay').value;
     const bMonth = document.getElementById('edit-birthMonth').value;
@@ -604,7 +614,7 @@ function savePersonModal() {
 
 function createNewPerson() {
     const newId = `@I${Date.now()}@`;
-    persons[newId] = { id: newId, givenName: 'Nová', surname: 'Osoba', sex: 'M', maidenName: '', birthDate: '', deathDate: '', famc: null, fams: [] };
+    persons[newId] = { id: newId, givenName: 'Nová', surname: 'Osoba', sex: 'M', marriedName: '', birthDate: '', deathDate: '', famc: null, fams: [] };
     activePersonId = newId;
     updateEmptyState();
     renderPersonList();
@@ -632,7 +642,7 @@ function addRelative(type) {
         givenName: type === 'father' ? 'Otec' : 'Matka',
         surname: persons[currentId].surname || '',
         sex: type === 'mother' ? 'F' : 'M',
-        maidenName: '', birthDate: '', deathDate: '', famc: null, fams: []
+        marriedName: '', birthDate: '', deathDate: '', famc: null, fams: []
     };
 
     let famId = persons[currentId].famc;
@@ -662,7 +672,7 @@ function addSpouse() {
         givenName: spouseSex === 'M' ? 'Manžel' : 'Manželka',
         surname: current.surname || '',
         sex: spouseSex,
-        maidenName: '', birthDate: '', deathDate: '', famc: null, fams: []
+        marriedName: '', birthDate: '', deathDate: '', famc: null, fams: []
     };
 
     const famId = `@F${Date.now()}@`;
